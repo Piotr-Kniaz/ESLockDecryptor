@@ -12,12 +12,11 @@
     <SelfContained>true</SelfContained>
 
     <PublishAot>true</PublishAot>
-    <!-- <StripSymbols>true</StripSymbols> -->
+    <StripSymbols>true</StripSymbols>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BouncyCastle.NetCore" Version="2.2.1" />
     <PackageReference Include="System.IO.Hashing" Version="9.0.7" />
   </ItemGroup>
 

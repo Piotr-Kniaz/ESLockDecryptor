@@ -1,7 +1,6 @@
+using System.Security.Cryptography;
 using System.IO.Hashing;
 using System.Text;
-using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Security;
 
 namespace ESLockDecryptor;
 
@@ -86,11 +85,17 @@ public class EslockMetadata
             int normalizedLen = ((fileNameLength - 1 >> 4) + 1) << 4;
             var encryptedFileNameBytes = reader.ReadBytes(normalizedLen);
 
-            var cipher = CipherUtilities.GetCipher("AES/CFB/NoPadding");
-            var keyParam = new KeyParameter(key);
-            var ivParam = new ParametersWithIV(keyParam, IV);
-            cipher.Init(false, ivParam);
-            var decryptedNameBytes = cipher.DoFinal(encryptedFileNameBytes);
+            using var aes = Aes.Create();
+            aes.Key = key;
+            aes.IV = IV;
+            aes.Mode = CipherMode.CFB;
+            aes.Padding = PaddingMode.None;
+            aes.FeedbackSize = 128;
+
+            using var decryptor = aes.CreateDecryptor();
+
+            var decryptedNameBytes = decryptor.TransformFinalBlock(encryptedFileNameBytes, 0, encryptedFileNameBytes.Length);
+
             originalFileName = Encoding.UTF8.GetString(decryptedNameBytes, 0, fileNameLength);
         }
 

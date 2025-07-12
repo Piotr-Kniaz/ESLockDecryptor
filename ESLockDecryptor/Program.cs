@@ -18,6 +18,10 @@ class Program
         string inputPath = args[0];
         string outputPath = args[1];
 
+        // For debugging
+        // string inputPath = "encrypted";
+        // string outputPath = "decrypted";
+
         if (!Directory.Exists(outputPath))
         {
             Directory.CreateDirectory(outputPath);

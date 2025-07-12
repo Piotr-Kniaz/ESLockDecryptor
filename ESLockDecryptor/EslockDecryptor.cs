@@ -1,5 +1,4 @@
-using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Security;
+using System.Security.Cryptography;
 
 namespace ESLockDecryptor;
 
@@ -7,7 +6,7 @@ public static class EslockDecryptor
 {
     public static void DecryptFile(string eslockFilePath, string outputFilePath)
     {
-        Console.WriteLine($"Start of decryption: {Path.GetFileName(eslockFilePath)}");
+        Console.WriteLine($"Start decrypting: {Path.GetFileName(eslockFilePath)}");
         try
         {
             var metadata = EslockMetadata.Parse(eslockFilePath);
@@ -65,34 +64,36 @@ public static class EslockDecryptor
             DecryptFile(eslockFile, outputDirectory);
         });
 
+        Console.WriteLine("=======================================================");
         Console.WriteLine("Decryption of all files is complete.");
     }
 
     private static void DecryptStream(Stream inputStream, Stream outputStream, EslockMetadata metadata)
     {
-        var cipher = CipherUtilities.GetCipher("AES/CFB/NoPadding");
+        using var aes = Aes.Create();
+        aes.Key = metadata.Key;
+        aes.IV = EslockMetadata.IV;
+        aes.Mode = CipherMode.CFB;
+        aes.Padding = PaddingMode.None;
+        aes.FeedbackSize = 128;
 
-        var keyParam = new KeyParameter(metadata.Key);
-        var ivParam = new ParametersWithIV(keyParam, EslockMetadata.IV);
-        cipher.Init(false, ivParam);
+        using var decryptor = aes.CreateDecryptor();
 
         long originalFileLength = inputStream.Length - metadata.FooterLength;
-        const int bufferSize = 16384;
-        var buffer = new byte[bufferSize];
 
         if (!metadata.IsPartial)
         {
+            using var cryptoStream = new CryptoStream(inputStream, decryptor, CryptoStreamMode.Read);
+
+            byte[] buffer = new byte[16384];
             long bytesToProcess = originalFileLength;
+
             while (bytesToProcess > 0)
             {
-                int bytesRead = inputStream.Read(buffer, 0, (int)Math.Min(buffer.Length, bytesToProcess));
+                int bytesRead = cryptoStream.Read(buffer, 0, (int)Math.Min(buffer.Length, bytesToProcess));
                 if (bytesRead == 0) break;
 
-                var decryptedBytes = cipher.ProcessBytes(buffer, 0, bytesRead);
-                if (decryptedBytes != null)
-                {
-                    outputStream.Write(decryptedBytes, 0, decryptedBytes.Length);
-                }
+                outputStream.Write(buffer, 0, bytesRead);
                 bytesToProcess -= bytesRead;
             }
         }
@@ -103,23 +104,42 @@ public static class EslockDecryptor
 
             var firstPart = new byte[encryptedLength];
             inputStream.ReadExactly(firstPart, 0, firstPart.Length);
-            var decryptedFirst = cipher.ProcessBytes(firstPart);
-            outputStream.Write(decryptedFirst, 0, decryptedFirst.Length);
+            var decryptedFirstBytes = decryptor.TransformFinalBlock(firstPart, 0, firstPart.Length);
+            outputStream.Write(decryptedFirstBytes, 0, decryptedFirstBytes.Length);
 
-            var middlePart = new byte[middlePartLength];
-            inputStream.ReadExactly(middlePart, 0, middlePart.Length);
-            outputStream.Write(middlePart, 0, middlePart.Length);
+            if (middlePartLength > 0)
+            {
+                inputStream.CopyTo(outputStream, middlePartLength);
+            }
 
+            using var finalDecryptor = aes.CreateDecryptor();
             var lastPart = new byte[encryptedLength];
             inputStream.ReadExactly(lastPart, 0, lastPart.Length);
-            var decryptedLast = cipher.ProcessBytes(lastPart);
-            outputStream.Write(decryptedLast, 0, decryptedLast.Length);
+            var decryptedLastBytes = finalDecryptor.TransformFinalBlock(lastPart, 0, lastPart.Length);
+            outputStream.Write(decryptedLastBytes, 0, decryptedLastBytes.Length);
         }
+    }
+}
 
-        var finalBytes = cipher.DoFinal();
-        if (finalBytes != null)
+public static class StreamExtensions
+{
+    public static void CopyTo(this Stream source, Stream destination, long count)
+    {
+        byte[] buffer = new byte[16384];
+        long bytesCopied = 0;
+
+        while (bytesCopied < count)
         {
-            outputStream.Write(finalBytes, 0, finalBytes.Length);
+            int bytesToRead = (int)Math.Min(buffer.Length, count - bytesCopied);
+            int bytesRead = source.Read(buffer, 0, bytesToRead);
+
+            if (bytesRead == 0)
+            {
+                break;
+            }
+
+            destination.Write(buffer, 0, bytesRead);
+            bytesCopied += bytesRead;
         }
     }
 }
