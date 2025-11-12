@@ -6,7 +6,7 @@ class Program
     {
         Console.WriteLine("Utility for decrypting ES File Explorer files (.eslock)");
         Console.WriteLine("                ! FOR LEGAL USE ONLY !");
-        Console.WriteLine("   Version 1.0 | (C) 2025 Piotr Kniaz | MIT License");
+        Console.WriteLine("   Version 1.1 | (C) 2025 Piotr Kniaz | MIT License");
         Console.WriteLine("=======================================================");
 
         if (args.Length < 2)
