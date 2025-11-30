@@ -49,11 +49,10 @@ public static class EslockDecryptor
             return;
         }
 
-        Console.WriteLine($"Found {eslockFiles.Length} file(s). Starting parallel decryption...");
+        Console.WriteLine($"\nFound {eslockFiles.Length} file(s). Starting parallel decryption...");
 
         Parallel.ForEach(eslockFiles, eslockFile =>
         {
-            var relativePath = Path.GetRelativePath(inputDirectory, eslockFile);
             var metadata = EslockMetadata.Parse(eslockFile);
             if (metadata == null)
             {
@@ -61,7 +60,16 @@ public static class EslockDecryptor
                 return;
             }
 
-            DecryptFile(eslockFile, outputDirectory);
+            var relativePath = Path.GetRelativePath(inputDirectory, eslockFile);
+            var relativeDir = Path.GetDirectoryName(relativePath);
+
+            var targetDirectory = string.IsNullOrEmpty(relativeDir)
+                ? outputDirectory
+                : Path.Combine(outputDirectory, relativeDir);
+
+            Directory.CreateDirectory(targetDirectory);
+
+            DecryptFile(eslockFile, targetDirectory);
         });
 
         Console.WriteLine("=======================================================");
