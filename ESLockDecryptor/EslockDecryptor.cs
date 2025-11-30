@@ -26,7 +26,7 @@ public static class EslockDecryptor
                 outputFilePath = Path.Combine(outputFilePath, metadata.OriginalFileName);
             }
 
-            using var inputFileStream = new FileStream(eslockFilePath, FileMode.Open, FileAccess.Read);
+            using var inputFileStream = new FileStream(eslockFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             using var outputFileStream = new FileStream(outputFilePath, FileMode.Create, FileAccess.Write);
 
             DecryptStream(inputFileStream, outputFileStream, metadata);
@@ -85,7 +85,7 @@ public static class EslockDecryptor
         {
             using var cryptoStream = new CryptoStream(inputStream, decryptor, CryptoStreamMode.Read);
 
-            byte[] buffer = new byte[16384];
+            byte[] buffer = new byte[81920];
             long bytesToProcess = originalFileLength;
 
             while (bytesToProcess > 0)
@@ -125,7 +125,7 @@ public static class StreamExtensions
 {
     public static void CopyTo(this Stream source, Stream destination, long count)
     {
-        byte[] buffer = new byte[16384];
+        byte[] buffer = new byte[81920];
         long bytesCopied = 0;
 
         while (bytesCopied < count)

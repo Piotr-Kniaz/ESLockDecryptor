@@ -12,8 +12,11 @@
     <SelfContained>true</SelfContained>
 
     <PublishAot>true</PublishAot>
+
     <StripSymbols>true</StripSymbols>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <DebuggerSupport>false</DebuggerSupport>
+
+    <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>

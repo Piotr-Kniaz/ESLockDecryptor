@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.IO.Hashing;
+using System.Buffers.Binary;
 using System.Text;
 
 namespace ESLockDecryptor;
@@ -31,8 +32,8 @@ public class EslockMetadata
 
         fs.Seek(-4, SeekOrigin.End);
         var footerLengthBytes = new byte[4];
-        fs.ReadExactly(footerLengthBytes, 0, 4);
-        int footerLength = ReadBigEndianInt32(footerLengthBytes, 0);
+        fs.ReadExactly(footerLengthBytes);
+        int footerLength = BinaryPrimitives.ReadInt32BigEndian(footerLengthBytes);
 
         if (footerLength <= 0 || footerLength > 1024 || footerLength >= fileLength)
         {
@@ -42,13 +43,13 @@ public class EslockMetadata
 
         fs.Seek(-12, SeekOrigin.End);
         var storedCrcBytes = new byte[8];
-        fs.ReadExactly(storedCrcBytes, 0, 8);
-        uint storedCrc = (uint)ReadBigEndianInt64(storedCrcBytes, 0);
+        fs.ReadExactly(storedCrcBytes);
+        uint storedCrc = (uint)BinaryPrimitives.ReadInt64BigEndian(storedCrcBytes);
 
         int footerDataLength = footerLength - 12;
         fs.Seek(-(footerLength - 4), SeekOrigin.Current);
         var footerDataBytes = new byte[footerDataLength];
-        fs.ReadExactly(footerDataBytes, 0, footerDataLength);
+        fs.ReadExactly(footerDataBytes);
 
         var calculatedCrc = Crc32.HashToUInt32(footerDataBytes);
 
@@ -60,17 +61,18 @@ public class EslockMetadata
 
         fs.Seek(-29, SeekOrigin.End);
         var key = new byte[16];
-        fs.ReadExactly(key, 0, 16);
+        fs.ReadExactly(key);
 
         using var footerStream = new MemoryStream(footerDataBytes);
         using var reader = new BinaryReader(footerStream);
 
         bool isPartial = reader.ReadByte() != 0xFF;
         int encryptedLength = 0;
+
         if (isPartial)
         {
             var lenBytes = reader.ReadBytes(4);
-            encryptedLength = ReadBigEndianInt32(lenBytes, 0);
+            encryptedLength = BinaryPrimitives.ReadInt32BigEndian(lenBytes);
         }
 
         int fileNameLength = reader.ReadByte();
@@ -100,17 +102,5 @@ public class EslockMetadata
         }
 
         return new EslockMetadata(key, footerLength, originalFileName, isPartial, encryptedLength);
-    }
-
-    private static int ReadBigEndianInt32(byte[] data, int offset)
-    {
-        Array.Reverse(data, offset, 4);
-        return BitConverter.ToInt32(data, offset);
-    }
-
-    private static long ReadBigEndianInt64(byte[] data, int offset)
-    {
-        Array.Reverse(data, offset, 8);
-        return BitConverter.ToInt64(data, offset);
     }
 }
