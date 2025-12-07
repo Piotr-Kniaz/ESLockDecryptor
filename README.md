@@ -1,6 +1,6 @@
 # ESLockDecryptor
 
-**ESLockDecryptor** is a command-line utility designed to recover and decrypt files encrypted by "ES File Explorer" (files with the `.eslock` extension). It supports processing both individual files and entire directories.
+**ESLockDecryptor** is a command-line utility designed to recover and decrypt files encrypted by ES File Explorer (files with the `.eslock` extension). It supports processing both individual files and entire directories.
 
 > [!WARNING]
 > **FOR LEGAL USE ONLY!** This tool is intended for recovering **your own** files to which you have lost access. The author is not responsible for any misuse of this software or for recovering files without the owner's permission.
@@ -10,7 +10,7 @@
 *   **Batch Processing:** Decrypt entire directories containing `.eslock` files.
 *   **Single File Mode:** Decrypt specific files.
 *   **Auto-Detection:** Automatically detects input/output paths if not specified.
-*   **Lightweight:** Simple CLI interface.
+*   **Fast and Lightweight:** Simple CLI interface, parallel decryption of multiple files.
 
 <p align="center"><img width="692" alt="Screenshot" src="https://github.com/user-attachments/assets/4e2ce6af-1511-429d-bd8d-cc36879adaa1"/></p>
 
