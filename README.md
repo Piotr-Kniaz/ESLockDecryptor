@@ -1,5 +1,7 @@
 # ESLockDecryptor
 
+[![Packet Storm](https://img.shields.io/badge/Packet%20Storm-Featured-000000?style=flat)](https://packetstorm.news/files/id/213316/)
+
 **ESLockDecryptor** is a command-line utility designed to recover and decrypt files encrypted by ES File Explorer (files with the `.eslock` extension). It supports processing both individual files and entire directories.
 
 > [!WARNING]
