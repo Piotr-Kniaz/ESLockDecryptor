@@ -1,6 +1,6 @@
 # ESLockDecryptor
 
-[![Packet Storm](https://img.shields.io/badge/Packet%20Storm-Featured-000000?style=flat)](https://packetstorm.news/files/id/213316/)
+[![Packet Storm](https://img.shields.io/badge/Packet%20Storm-Featured-000000?style=flat)](https://packetstorm.news/files/id/213316/) [![CXSecurity](https://img.shields.io/badge/CXSecurity-WLB--2025120027-black?style=flat)](https://cxsecurity.com/issue/WLB-2025120027)
 
 **ESLockDecryptor** is a command-line utility designed to recover and decrypt files encrypted by ES File Explorer (files with the `.eslock` extension). It supports processing both individual files and entire directories.
 
@@ -27,7 +27,7 @@ You can download the latest pre-built binaries for your system from the **[Relea
 **Supported Platforms:**
 *   **Windows:** x64, x86, Arm64
 *   **Linux:** x64, Arm64
-    *(tested on Ubuntu & Fedora; compatible with Debian, Arch, Mint, openSUSE, and other glibc-based distributions)*
+    *(tested on Ubuntu, Fedora, Kali; compatible with Debian, Arch, Mint, openSUSE, and other glibc-based distributions)*
 *   **macOS:** Arm64 (Apple Silicon), x64 (Intel)
 
 
@@ -93,6 +93,10 @@ If you prefer to build the application yourself, ensure you have the **.NET 10 S
     ```bash
     dotnet build --configuration Release
     ```
+
+## Issues & Contributing
+
+**Contributions are welcome!** If you found a bug, have a feature request, or want to improve the code, feel free to help.
 
 ## License
 
