@@ -10,7 +10,7 @@ public static class EslockDecryptor
         try
         {
             var metadata = EslockMetadata.Parse(eslockFilePath);
-            if (metadata == null)
+            if (metadata is null)
             {
                 Console.WriteLine($"[ERROR] Failed to read metadata: {eslockFilePath}");
                 return;
@@ -54,7 +54,7 @@ public static class EslockDecryptor
         Parallel.ForEach(eslockFiles, eslockFile =>
         {
             var metadata = EslockMetadata.Parse(eslockFile);
-            if (metadata == null)
+            if (metadata is null)
             {
                 Console.WriteLine($"[ERROR] Skipping file (failed to read metadata): {eslockFile}");
                 return;

@@ -48,11 +48,11 @@ You can download the latest pre-built binaries for your system from the **[Relea
 ## Usage
 
 ```bash
-ESLockDecryptor [input_path] [output_path]
+ESLockDecryptor [options] [<input> [<output>]]
 ```
 
 ### Output Directory Logic
-If the `[output_path]` argument is omitted (Scenarios 1 & 2), the utility automatically creates a new directory in the current working location using the format:
+If the `[output]` argument is omitted (Scenarios 1 & 2), the utility automatically creates a new directory in the current working location using the format:
 `./decrypted-yyyyMMdd-hhmmss`
 *(e.g., `decrypted-20251201-150000`)*
 
