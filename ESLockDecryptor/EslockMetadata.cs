@@ -8,27 +8,34 @@ namespace ESLockDecryptor;
 public class EslockMetadata
 {
     public byte[] Key { get; }
+    public string? Password { get; }
     public static byte[] IV { get; } = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
     public int FooterLength { get; }
     public string OriginalFileName { get; }
     public bool IsPartial { get; }
     public int EncryptedLength { get; }
+    public uint StoredCrc { get; }
+    public uint CalculatedCrc { get; }
+    public bool CrcValid => StoredCrc == CalculatedCrc;
 
-    private EslockMetadata(byte[] key, int footerLength, string originalFileName, bool isPartial, int encryptedLength)
+    private EslockMetadata(byte[] key, int footerLength, string originalFileName, bool isPartial,
+                           int encryptedLength, uint storedCrc, uint calculatedCrc)
     {
         Key = key;
         FooterLength = footerLength;
         OriginalFileName = originalFileName;
         IsPartial = isPartial;
         EncryptedLength = encryptedLength;
+        StoredCrc = storedCrc;
+        CalculatedCrc = calculatedCrc;
     }
 
-    public static EslockMetadata? Parse(string eslockFilePath)
+    public static EslockMetadata Parse(string eslockFilePath)
     {
         using var fs = new FileStream(eslockFilePath, FileMode.Open, FileAccess.Read);
         long fileLength = fs.Length;
 
-        if (fileLength < 29) return null;
+        if (fileLength < 29) throw new InvalidDataException("File is too small to be a valid .eslock file.");
 
         fs.Seek(-4, SeekOrigin.End);
         var footerLengthBytes = new byte[4];
@@ -37,8 +44,7 @@ public class EslockMetadata
 
         if (footerLength <= 0 || footerLength > 1024 || footerLength >= fileLength)
         {
-            Console.WriteLine("[WARNING] Incorrect footer length. File is corrupted or is not an .eslock file.");
-            return null;
+            throw new InvalidDataException("Incorrect footer length.");
         }
 
         fs.Seek(-12, SeekOrigin.End);
@@ -53,11 +59,11 @@ public class EslockMetadata
 
         var calculatedCrc = Crc32.HashToUInt32(footerDataBytes);
 
-        if (storedCrc != calculatedCrc)
-        {
-            Console.WriteLine("[WARNING] CRC check error. File may be corrupted.");
-            return null;
-        }
+        // if (storedCrc != calculatedCrc)
+        // {
+        //     Console.WriteLine("[WARNING] CRC check error. File may be corrupted.");
+        //     return null;
+        // }
 
         fs.Seek(-29, SeekOrigin.End);
         var key = new byte[16];
@@ -101,6 +107,6 @@ public class EslockMetadata
             originalFileName = Encoding.UTF8.GetString(decryptedNameBytes, 0, fileNameLength);
         }
 
-        return new EslockMetadata(key, footerLength, originalFileName, isPartial, encryptedLength);
+        return new EslockMetadata(key, footerLength, originalFileName, isPartial, encryptedLength, storedCrc, calculatedCrc);
     }
 }

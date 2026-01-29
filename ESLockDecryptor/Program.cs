@@ -32,10 +32,10 @@ var verboseOption = new Option<bool>(name: "--verbose", aliases: ["-v"])
     Description = "Enable detailed logging."
 };
 
-// var overwriteOption = new Option<bool>(name: "--force", aliases: ["-f"])
-// {
-//     Description = "Overwrite existing files without asking."
-// };
+var overwriteOption = new Option<bool>(name: "--overwrite")
+{
+    Description = "Overwrite existing decrypted files."
+};
 
 var passwordOption = new Option<string?>(name: "--password", aliases: ["-p"])
 {
@@ -75,8 +75,8 @@ var rootCommand = new RootCommand(description)
 {
     inputArgument,
     outputArgument,
-    // overwriteOption,
     ignoreCrcOption,
+    overwriteOption,
     verboseOption,
     passwordOption,
     keyOption,
@@ -85,11 +85,6 @@ var rootCommand = new RootCommand(description)
 
 ParseResult parseResult = rootCommand.Parse(args);
 parseResult.Invoke();
-
-ParserConfiguration config = new ParserConfiguration
-{
-    EnablePosixBundling = true,
-};
 
 if (parseResult.Errors.Count == 0)
 {
@@ -188,13 +183,13 @@ return 1;
 //     Console.WriteLine("    ./ESLockDecryptor \"encrypted/path\" \"decrypted/path\"");
 // }
 
-public record InputArguments(
+public record Options(
     string? InputPath,
     string? OutputPath,
     bool ExtractKeyOnly,
     bool IgnoreCrc,
     bool Verbose,
-    // bool Overwrite,
+    bool Overwrite,
     string? Password,
     string? Key
 );
