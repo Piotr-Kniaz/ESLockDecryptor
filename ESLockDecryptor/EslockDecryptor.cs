@@ -17,8 +17,8 @@ public static class EslockDecryptor
             if (!options.IgnoreCrc && !metadata.CrcValid)
             {
                 logBuffer.AddLine($"[ERROR] CRC check failed. Skipping file. Use --ignore-crc to bypass this check.");
-                Errors++;
-                FilesSkipped++;
+                IncrementErrors();
+                IncrementFilesSkipped();
                 return;
             }
 
@@ -28,10 +28,10 @@ public static class EslockDecryptor
                 if (!metadata.CrcValid)
                 {
                     logBuffer.AddLine("[WARNING] CRC check failed. Key may be corrupted.");
-                    Warnings++;
+                    IncrementWarnings();
                 }
 
-                FilesProcessed++;
+                IncrementFilesProcessed();
                 return;
             }
 
@@ -53,7 +53,7 @@ public static class EslockDecryptor
             if (!metadata.CrcValid)
             {
                 logBuffer.AddLine("[WARNING] CRC check failed. Metadata may be corrupted.");
-                Warnings++;
+                IncrementWarnings();
             }
 
             if (string.IsNullOrEmpty(outputFilePath))
@@ -71,15 +71,15 @@ public static class EslockDecryptor
             if (File.Exists(outputFilePath) && !options.Overwrite)
             {
                 logBuffer.AddLine("[ERROR] Output file already exists. Use --overwrite to replace it.");
-                Errors++;
-                FilesSkipped++;
+                IncrementErrors();
+                IncrementFilesSkipped();
                 return;
             }
 
             if (File.Exists(outputFilePath))
             {
                 logBuffer.AddLine("[WARNING] Output file already exists. It will be overwritten.");
-                Warnings++;
+                IncrementWarnings();
             }
 
             using var inputFileStream = new FileStream(inputFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -87,29 +87,25 @@ public static class EslockDecryptor
 
             if (options.Password is not null)
             {
-                if (options.Verbose)
-                    logBuffer.AddLine($"Using provided password: {options.Password}");
-
+                logBuffer.AddLine($"Using provided password: {options.Password}");
                 providedKey ??= GetKeyFromPassword(options.Password);
             }
             else if (options.Key is not null)
             {
-                if (options.Verbose)
-                    logBuffer.AddLine($"Using provided key: {options.Key}");
-
+                logBuffer.AddLine($"Using provided key: {options.Key}");
                 providedKey ??= Convert.FromHexString(options.Key);
             }
 
             DecryptStream(inputFileStream, outputFileStream, metadata, providedKey);
 
             logBuffer.AddLine($"[SUCCESS] Decrypted: {Path.GetFileName(outputFilePath)}");
-            FilesDecrypted++;
+            IncrementFilesDecrypted();
         }
         catch (Exception ex)
         {
             logBuffer.AddLine($"[ERROR] {ex.Message}");
-            Errors++;
-            FilesSkipped++;
+            IncrementErrors();
+            IncrementFilesSkipped();
         }
         finally
         {
@@ -209,27 +205,31 @@ public static class EslockDecryptor
     private static byte[] GetKeyFromPassword(string password) =>
         [.. MD5.HashData(System.Text.Encoding.UTF8.GetBytes(password)).Take(16)];
 
-    public static int FilesProcessed { get; private set; } = 0;
-    public static int FilesDecrypted
+    private static void IncrementFilesProcessed() => Interlocked.Increment(ref _filesProcessed);
+    private static void IncrementFilesDecrypted()
     {
-        get;
-        private set
-        {
-            FilesDecrypted = value;
-            FilesProcessed++;
-        }
-    } = 0;
-    public static int FilesSkipped
+        Interlocked.Increment(ref _filesDecrypted);
+        Interlocked.Increment(ref _filesProcessed);
+    }
+    private static void IncrementFilesSkipped()
     {
-        get;
-        private set
-        {
-            FilesSkipped = value;
-            FilesProcessed++;
-        }
-    } = 0;
-    public static int Errors { get; private set; } = 0;
-    public static int Warnings { get; private set; } = 0;
+        Interlocked.Increment(ref _filesSkipped);
+        Interlocked.Increment(ref _filesProcessed);
+    }
+    private static void IncrementErrors() => Interlocked.Increment(ref _errors);
+    private static void IncrementWarnings() => Interlocked.Increment(ref _warnings);
+
+    public static int FilesProcessed { get => _filesProcessed; }
+    public static int FilesDecrypted { get => _filesDecrypted; }
+    public static int FilesSkipped { get => _filesSkipped; }
+    public static int Errors { get => _errors; }
+    public static int Warnings { get => _warnings; }
+
+    private static int _filesProcessed = 0;
+    private static int _filesDecrypted = 0;
+    private static int _filesSkipped = 0;
+    private static int _errors = 0;
+    private static int _warnings = 0;
 }
 
 public static class StreamExtensions
