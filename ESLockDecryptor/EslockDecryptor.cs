@@ -56,15 +56,13 @@ public static class EslockDecryptor
                 IncrementWarnings();
             }
 
-            if (string.IsNullOrEmpty(outputFilePath))
+            if (!Directory.Exists(outputFilePath))
             {
-                var directory = Path.GetDirectoryName(inputFilePath);
-                outputFilePath = Path.Combine(directory ?? "", metadata.OriginalFileName);
+                Directory.CreateDirectory(outputFilePath);
+                Console.WriteLine($"Created output directory: {outputFilePath}");
             }
-            else
-            {
-                outputFilePath = Path.Combine(outputFilePath, metadata.OriginalFileName);
-            }
+
+            outputFilePath = Path.Combine(outputFilePath, metadata.OriginalFileName);
 
             logBuffer.AddLine($"  Target path: {Path.GetFullPath(outputFilePath)}");
 
@@ -127,8 +125,13 @@ public static class EslockDecryptor
 
         Console.WriteLine($"  Found {eslockFiles.Length} file(s).");
 
-        byte[]? providedKey = null;
+        if (!Directory.Exists(outputDirectory))
+        {
+            Directory.CreateDirectory(outputDirectory);
+            Console.WriteLine($"Created output directory: {outputDirectory}");
+        }
 
+        byte[]? providedKey = null;
         
         if (options.Key is not null)
             providedKey = Convert.FromHexString(options.Key);

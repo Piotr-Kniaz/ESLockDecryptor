@@ -47,13 +47,6 @@ public static class EslockProcessor
             outputPath = new DirectoryInfo(Path.Combine(baseDir, $"decrypted-{timestamp}"));
         }
 
-        if (!outputPath.Exists)
-        {
-            Directory.CreateDirectory(outputPath.FullName);
-            Console.WriteLine($"Created output directory: {outputPath.FullName}");
-        }
-
-
         switch (inputPath)
         {
             case FileInfo fileInfo:
@@ -75,7 +68,7 @@ public static class EslockProcessor
         Console.WriteLine("=======================================================================");
         Console.WriteLine("Forensic tool for recovering ES File Explorer encrypted files (.eslock)");
         Console.WriteLine("                         ! FOR LEGAL USE ONLY !");
-        Console.WriteLine($"            Version {Version} | (C) 2025 Piotr Kniaz | MIT License");
+        Console.WriteLine($"         Version {Version} | (C) 2025-2026 Piotr Kniaz | MIT License");
         Console.WriteLine("=======================================================================");
     }
 
