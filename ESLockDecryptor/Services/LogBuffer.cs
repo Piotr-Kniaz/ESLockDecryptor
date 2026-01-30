@@ -3,7 +3,7 @@ namespace ESLockDecryptor.Services;
 internal class LogBuffer
 {
     private static readonly Lock _consoleLock = new();
-    private List<string> _logBuffer = [];
+    private readonly List<string> _logBuffer = [];
 
     public void AddLine(string line)
     {

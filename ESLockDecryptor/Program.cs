@@ -1,21 +1,24 @@
 ﻿using System.CommandLine;
-using System.CommandLine.Parsing;
+using ESLockDecryptor.Services;
 
-string description = "ESLockDecryptor is a forensic utility for recovering ES File Explorer encrypted files (.eslock).";
+string description = "ESLockDecryptor is a forensic tool for recovering ES File Explorer encrypted files (.eslock)";
 
 #region Arguments and Options
 
-var inputArgument = new Argument<string?>("input")
+var inputArgument = new Argument<FileSystemInfo>("input")
 {
     Description = "Path to input file or directory. Defaults to current directory if omitted.",
     Arity = ArgumentArity.ZeroOrOne
-};
+}
+.AcceptLegalFilePathsOnly()
+.AcceptExistingOnly();
 
-var outputArgument = new Argument<string?>("output")
+var outputArgument = new Argument<DirectoryInfo?>("output")
 {
     Description = "Destination directory. If omitted, a timestamped folder will be created alongside the input.",
     Arity = ArgumentArity.ZeroOrOne
-};
+}
+.AcceptLegalFilePathsOnly();
 
 var ignoreCrcOption = new Option<bool>(name: "--ignore-crc")
 {
@@ -49,28 +52,6 @@ var keyOption = new Option<string?>(name: "--key", aliases: ["-k"])
 
 #endregion
 
-#region Validators
-
-inputArgument.Validators.Add(result => {
-    var path = result.GetValueOrDefault<string>();
-    if (!string.IsNullOrEmpty(path) && !File.Exists(path) && !Directory.Exists(path)) {
-        result.AddError($"Input path '{path}' does not exist.");
-    }
-});
-
-keyOption.Validators.Add(result => {
-    var key = result.GetValueOrDefault<string>();
-    if (!string.IsNullOrEmpty(key))
-    {
-        if (key.Length != 32 || !HexRegex().IsMatch(key))
-        {
-            result.AddError("Key must be a 32-character hexadecimal string.");
-        }
-    }
-});
-
-#endregion
-
 var rootCommand = new RootCommand(description)
 {
     inputArgument,
@@ -83,19 +64,53 @@ var rootCommand = new RootCommand(description)
     extractKeyOption
 };
 
+#region Validators
+
+keyOption.Validators.Add(result =>
+{
+    var key = result.GetValueOrDefault<string>();
+    if (!string.IsNullOrEmpty(key))
+    {
+        if (key.Length != 32 || !HexRegex().IsMatch(key))
+        {
+            result.AddError("Key must be a 32-character hexadecimal string.");
+        }
+    }
+});
+
+rootCommand.Validators.Add(result =>
+{
+    bool hasKey = result.GetResult(keyOption) is not null;
+    bool hasPass = result.GetResult(passwordOption) is not null;
+
+    if (hasKey && hasPass)
+    {
+        result.AddError("You cannot specify both '--key' and '--password'. Please choose one.");
+    }
+});
+
+#endregion
+
+rootCommand.SetAction(parseResult =>
+{
+    var options = new Options(
+        InputPath: parseResult.GetValue(inputArgument),
+        OutputPath: parseResult.GetValue(outputArgument),
+        ExtractKeyOnly: parseResult.GetValue(extractKeyOption),
+        IgnoreCrc: parseResult.GetValue(ignoreCrcOption),
+        Verbose: parseResult.GetValue(verboseOption),
+        Overwrite: parseResult.GetValue(overwriteOption),
+        Password: parseResult.GetValue(passwordOption),
+        Key: parseResult.GetValue(keyOption)
+    );
+
+    ESLockDecryptor.EslockProcessor.Execute(options);
+    return 0;
+});
+
 ParseResult parseResult = rootCommand.Parse(args);
-parseResult.Invoke();
 
-if (parseResult.Errors.Count == 0)
-{
-    Console.WriteLine("Key: " + parseResult.GetValue<string>("--key"));
-}
-
-foreach (ParseError parseError in parseResult.Errors)
-{
-    // Console.Error.WriteLine(parseError.Message);
-}
-return 1;
+return parseResult.Invoke();
 
 
 // Console.WriteLine("=======================================================");
@@ -182,17 +197,6 @@ return 1;
 //     Console.WriteLine("3. Explicit input and output:");
 //     Console.WriteLine("    ./ESLockDecryptor \"encrypted/path\" \"decrypted/path\"");
 // }
-
-public record Options(
-    string? InputPath,
-    string? OutputPath,
-    bool ExtractKeyOnly,
-    bool IgnoreCrc,
-    bool Verbose,
-    bool Overwrite,
-    string? Password,
-    string? Key
-);
 
 partial class Program
 {

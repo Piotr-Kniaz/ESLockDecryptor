@@ -5,6 +5,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- <RootNamespace>ESLockDecryptor</RootNamespace> -->
 
     <Version>1.2</Version>
 

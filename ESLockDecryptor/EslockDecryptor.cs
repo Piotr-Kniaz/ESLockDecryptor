@@ -1,4 +1,3 @@
-using System.CommandLine;
 using System.Security.Cryptography;
 using ESLockDecryptor.Services;
 
@@ -6,7 +5,7 @@ namespace ESLockDecryptor;
 
 public static class EslockDecryptor
 {
-    public static void DecryptFile(string inputFilePath, string outputFilePath, Options options)
+    public static void DecryptFile(string inputFilePath, string outputFilePath, Options options, byte[]? providedKey = null)
     {
         var logBuffer = new LogBuffer();
         logBuffer.AddLine($"\nFile processing: {Path.GetFileName(inputFilePath)}");
@@ -18,6 +17,7 @@ public static class EslockDecryptor
             if (!options.IgnoreCrc && !metadata.CrcValid)
             {
                 logBuffer.AddLine($"[ERROR] CRC check failed. Skipping file. Use --ignore-crc to bypass this check.");
+                Errors++;
                 FilesSkipped++;
                 return;
             }
@@ -26,9 +26,12 @@ public static class EslockDecryptor
             {
                 logBuffer.AddLine($"  Key: {Convert.ToHexString(metadata.Key)}");
                 if (!metadata.CrcValid)
+                {
                     logBuffer.AddLine("[WARNING] CRC check failed. Key may be corrupted.");
+                    Warnings++;
+                }
 
-                TotalFilesProcessed++;
+                FilesProcessed++;
                 return;
             }
 
@@ -50,6 +53,7 @@ public static class EslockDecryptor
             if (!metadata.CrcValid)
             {
                 logBuffer.AddLine("[WARNING] CRC check failed. Metadata may be corrupted.");
+                Warnings++;
             }
 
             if (string.IsNullOrEmpty(outputFilePath))
@@ -67,6 +71,7 @@ public static class EslockDecryptor
             if (File.Exists(outputFilePath) && !options.Overwrite)
             {
                 logBuffer.AddLine("[ERROR] Output file already exists. Use --overwrite to replace it.");
+                Errors++;
                 FilesSkipped++;
                 return;
             }
@@ -74,12 +79,28 @@ public static class EslockDecryptor
             if (File.Exists(outputFilePath))
             {
                 logBuffer.AddLine("[WARNING] Output file already exists. It will be overwritten.");
+                Warnings++;
             }
 
             using var inputFileStream = new FileStream(inputFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             using var outputFileStream = new FileStream(outputFilePath, FileMode.Create, FileAccess.Write);
 
-            DecryptStream(inputFileStream, outputFileStream, metadata);
+            if (options.Password is not null)
+            {
+                if (options.Verbose)
+                    logBuffer.AddLine($"Using provided password: {options.Password}");
+
+                providedKey ??= GetKeyFromPassword(options.Password);
+            }
+            else if (options.Key is not null)
+            {
+                if (options.Verbose)
+                    logBuffer.AddLine($"Using provided key: {options.Key}");
+
+                providedKey ??= Convert.FromHexString(options.Key);
+            }
+
+            DecryptStream(inputFileStream, outputFileStream, metadata, providedKey);
 
             logBuffer.AddLine($"[SUCCESS] Decrypted: {Path.GetFileName(outputFilePath)}");
             FilesDecrypted++;
@@ -87,6 +108,8 @@ public static class EslockDecryptor
         catch (Exception ex)
         {
             logBuffer.AddLine($"[ERROR] {ex.Message}");
+            Errors++;
+            FilesSkipped++;
         }
         finally
         {
@@ -108,6 +131,14 @@ public static class EslockDecryptor
 
         Console.WriteLine($"  Found {eslockFiles.Length} file(s).");
 
+        byte[]? providedKey = null;
+
+        
+        if (options.Key is not null)
+            providedKey = Convert.FromHexString(options.Key);
+        else if (options.Password is not null)
+            providedKey = GetKeyFromPassword(options.Password);
+
         Parallel.ForEach(eslockFiles, eslockFile =>
         {
             var relativePath = Path.GetRelativePath(inputDirectory, eslockFile);
@@ -119,14 +150,14 @@ public static class EslockDecryptor
 
             Directory.CreateDirectory(targetDirectory);
 
-            DecryptFile(eslockFile, targetDirectory, options);
+            DecryptFile(eslockFile, targetDirectory, options, providedKey);
         });
     }
 
-    private static void DecryptStream(Stream inputStream, Stream outputStream, EslockMetadata metadata)
+    private static void DecryptStream(Stream inputStream, Stream outputStream, EslockMetadata metadata, byte[]? providedKey = null)
     {
         using var aes = Aes.Create();
-        aes.Key = metadata.Key;
+        aes.Key = providedKey ?? metadata.Key;
         aes.IV = EslockMetadata.IV;
         aes.Mode = CipherMode.CFB;
         aes.Padding = PaddingMode.None;
@@ -175,14 +206,17 @@ public static class EslockDecryptor
         }
     }
 
-    public static int TotalFilesProcessed { get; private set; } = 0;
+    private static byte[] GetKeyFromPassword(string password) =>
+        [.. MD5.HashData(System.Text.Encoding.UTF8.GetBytes(password)).Take(16)];
+
+    public static int FilesProcessed { get; private set; } = 0;
     public static int FilesDecrypted
     {
         get;
         private set
         {
             FilesDecrypted = value;
-            TotalFilesProcessed++;
+            FilesProcessed++;
         }
     } = 0;
     public static int FilesSkipped
@@ -191,9 +225,11 @@ public static class EslockDecryptor
         private set
         {
             FilesSkipped = value;
-            TotalFilesProcessed++;
+            FilesProcessed++;
         }
     } = 0;
+    public static int Errors { get; private set; } = 0;
+    public static int Warnings { get; private set; } = 0;
 }
 
 public static class StreamExtensions
