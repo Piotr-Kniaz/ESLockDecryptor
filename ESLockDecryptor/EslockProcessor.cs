@@ -40,7 +40,7 @@ public static class EslockProcessor
                 FileInfo fileInfo => Path.GetDirectoryName(fileInfo.FullName) ?? Directory.GetCurrentDirectory(),
                 DirectoryInfo dirInfo => (dirInfo.FullName == exeDirectory)
                     ? dirInfo.FullName
-                    : dirInfo.FullName.TrimEnd(Path.DirectorySeparatorChar),
+                    : dirInfo.Parent?.FullName ?? dirInfo.FullName,
                 _ => Directory.GetCurrentDirectory()
             };
 

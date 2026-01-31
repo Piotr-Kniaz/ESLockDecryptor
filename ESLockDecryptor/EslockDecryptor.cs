@@ -153,7 +153,8 @@ public static class EslockDecryptor
         });
     }
 
-    private static void DecryptStream(Stream inputStream, Stream outputStream, EslockMetadata metadata, byte[]? providedKey = null)
+    private static void DecryptStream(Stream inputStream, Stream outputStream,
+                                      EslockMetadata metadata, byte[]? providedKey = null)
     {
         using var aes = Aes.Create();
         aes.Key = providedKey ?? metadata.Key;
