@@ -59,12 +59,6 @@ public class EslockMetadata
 
         var calculatedCrc = Crc32.HashToUInt32(footerDataBytes);
 
-        // if (storedCrc != calculatedCrc)
-        // {
-        //     Console.WriteLine("[WARNING] CRC check error. File may be corrupted.");
-        //     return null;
-        // }
-
         fs.Seek(-29, SeekOrigin.End);
         var key = new byte[16];
         fs.ReadExactly(key);

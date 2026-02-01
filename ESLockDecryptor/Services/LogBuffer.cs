@@ -2,9 +2,6 @@ namespace ESLockDecryptor.Services;
 
 internal class LogBuffer
 {
-    private static readonly Lock _consoleLock = new();
-    private readonly List<string> _logBuffer = [];
-
     public void AddLine(string line)
     {
         _logBuffer.Add(line);
@@ -29,4 +26,7 @@ internal class LogBuffer
             }
         }
     }
+
+    private static readonly Lock _consoleLock = new();
+    private readonly List<string> _logBuffer = [];
 }
