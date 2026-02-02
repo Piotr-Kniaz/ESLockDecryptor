@@ -105,6 +105,7 @@ rawDecryptOption.CustomParser = result =>
         if (!int.TryParse(parts[1], out int size) || size <= 0)
         {
             result.AddError("Invalid size for '--raw-decrypt partial'. Size must be a positive integer.");
+            return null;
         }
 
         return new RawDecryptOptions(RawDecryptMode.Partial, size);
