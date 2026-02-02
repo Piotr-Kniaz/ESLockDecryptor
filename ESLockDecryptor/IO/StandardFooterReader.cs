@@ -11,16 +11,10 @@ public class StandardFooterReader : IFooterReader
     {
         const int maxFooterSize = 1024;
         const int minFooterSize = 29;
-        long fileLength;
-        Span<byte> buffer = [];
 
-        using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-        {
-            fileLength = fileStream.Length;
-            int bytesToRead = (int)Math.Min(fileLength, maxFooterSize);
-            fileStream.Seek(-bytesToRead, SeekOrigin.End);
-            fileStream.ReadExactly(buffer);
-        }
+        long fileLength = new FileInfo(filePath).Length;
+
+        ReadOnlySpan<byte> buffer = ReadFileTail(filePath, (int)Math.Min(fileLength, maxFooterSize));
 
         if (fileLength < minFooterSize)
         {
@@ -31,7 +25,7 @@ public class StandardFooterReader : IFooterReader
 
         if (footerLength <= 0 || footerLength > maxFooterSize || footerLength >= fileLength)
         {
-            throw new InvalidDataException("Incorrect footer length.");
+            throw new InvalidDataException("Incorrect footer length. Use the --heuristic parameter to attempt to find a valid footer.");
         }
 
         var footer = buffer[^footerLength..];
@@ -75,5 +69,23 @@ public class StandardFooterReader : IFooterReader
             Key = key.ToArray(),
             FooterLength = footerLength
         };
+    }
+
+    private ReadOnlySpan<byte> ReadFileTail(string filePath, int length)
+    {
+        var buffer = new byte[length];
+        
+        using var fileStream = new FileStream(
+            path: filePath,
+            mode: FileMode.Open,
+            access: FileAccess.Read,
+            share: FileShare.Read,
+            bufferSize: 1,
+            options: FileOptions.RandomAccess);
+
+        fileStream.Seek(-length, SeekOrigin.End);
+        fileStream.ReadExactly(buffer);
+
+        return new ReadOnlySpan<byte>(buffer);
     }
 }

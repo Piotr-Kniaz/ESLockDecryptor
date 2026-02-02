@@ -14,7 +14,7 @@ public static class EslockProcessor
         FileSystemInfo inputPath = options.InputPath ?? new DirectoryInfo(exeDirectory);
         DirectoryInfo outputPath = options.OutputPath ?? new DirectoryInfo(exeDirectory);
 
-        if (options.ExtractKeyOnly)
+        if (options.ReadOnly)
         {
             switch (inputPath)
             {

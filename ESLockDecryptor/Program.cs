@@ -1,4 +1,5 @@
 ﻿using System.CommandLine;
+using ESLockDecryptor.Models;
 using ESLockDecryptor.Services;
 
 const string description = "ESLockDecryptor is a forensic tool for recovering ES File Explorer encrypted files (.eslock)";
@@ -25,9 +26,9 @@ var ignoreCrcOption = new Option<bool>(name: "--ignore-crc")
     Description = "Try to process even if the footer CRC check fails."
 };
 
-var extractKeyOption = new Option<bool>(name: "--extract-key")
+var readOnlyOption = new Option<bool>(name: "--read-only")
 {
-    Description = "Only read metadata and print encryption keys (no decryption)."
+    Description = "Only read and print metadata (no decryption)."
 };
 
 var verboseOption = new Option<bool>(name: "--verbose", aliases: ["-v"])
@@ -40,14 +41,76 @@ var overwriteOption = new Option<bool>(name: "--overwrite")
     Description = "Overwrite existing decrypted files."
 };
 
-var passwordOption = new Option<string?>(name: "--password", aliases: ["-p"])
+var passwordOption = new Option<string>(name: "--password", aliases: ["-p"])
 {
     Description = "Password for decryption."
 };
 
-var keyOption = new Option<string?>(name: "--key", aliases: ["-k"])
+var keyOption = new Option<string>(name: "--key", aliases: ["-k"])
 {
     Description = "Hexadecimal key for decryption."
+};
+
+var heuristicOption = new Option<bool>(name: "--heuristic")
+{
+    Description = "Enable heuristic footer detection for files with corrupted or missing footers."
+};
+
+var rawDecryptOption = new Option<RawDecryptOptions?>(name: "--raw-decrypt")
+{
+    Description = "Enables raw decryption. Ignore metadata.",
+    HelpName = "auto|full|partial[:size]",
+    Arity = ArgumentArity.ZeroOrOne
+};
+
+#endregion
+
+#region Parsers
+
+rawDecryptOption.CustomParser = result =>
+{
+    // RawDecryptMode mode;
+
+    if (result.Tokens.Count == 0)
+    {
+        return new RawDecryptOptions(RawDecryptMode.Auto);
+    }
+
+    string? value = result.Tokens[0].Value;
+
+    var parts = value.Split(':', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    RawDecryptMode? mode = parts[0].ToLower() switch
+    {
+        "auto" => RawDecryptMode.Auto,
+        "full" => RawDecryptMode.Full,
+        "partial" => RawDecryptMode.Partial,
+        _ => null
+    };
+
+    if (mode is null)
+    {
+        result.AddError("Invalid value for '--raw-decrypt'. Allowed values are: auto, full, partial[:size].");
+        return null;
+    }
+
+    if (mode != RawDecryptMode.Partial && parts.Length > 1)
+    {
+        result.AddError("Size can only be specified when mode is 'partial'.");
+        return null;
+    }
+
+    if (mode == RawDecryptMode.Partial && parts.Length == 2)
+    {
+        if (!int.TryParse(parts[1], out int size) || size <= 0)
+        {
+            result.AddError("Invalid size for '--raw-decrypt partial'. Size must be a positive integer.");
+        }
+
+        return new RawDecryptOptions(RawDecryptMode.Partial, size);
+    }
+
+    return new RawDecryptOptions((RawDecryptMode)mode);
 };
 
 #endregion
@@ -56,12 +119,14 @@ var rootCommand = new RootCommand(description)
 {
     inputArgument,
     outputArgument,
-    ignoreCrcOption,
-    overwriteOption,
     verboseOption,
+    overwriteOption,
+    readOnlyOption,
+    ignoreCrcOption,
     passwordOption,
     keyOption,
-    extractKeyOption
+    heuristicOption,
+    rawDecryptOption
 };
 
 #region Validators
@@ -96,7 +161,7 @@ rootCommand.SetAction(parseResult =>
     var options = new Options(
         InputPath: parseResult.GetValue(inputArgument),
         OutputPath: parseResult.GetValue(outputArgument),
-        ExtractKeyOnly: parseResult.GetValue(extractKeyOption),
+        ReadOnly: parseResult.GetValue(readOnlyOption),
         IgnoreCrc: parseResult.GetValue(ignoreCrcOption),
         Verbose: parseResult.GetValue(verboseOption),
         Overwrite: parseResult.GetValue(overwriteOption),

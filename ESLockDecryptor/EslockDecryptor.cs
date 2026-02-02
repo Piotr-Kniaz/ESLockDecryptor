@@ -22,7 +22,7 @@ public static class EslockDecryptor
                 return;
             }
 
-            if (options.ExtractKeyOnly)
+            if (options.ReadOnly)
             {
                 logBuffer.AddLine($"  Key: {Convert.ToHexString(metadata.Key)}");
                 if (!metadata.CrcValid)

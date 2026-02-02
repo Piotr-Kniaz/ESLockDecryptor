@@ -3,7 +3,7 @@ namespace ESLockDecryptor.Services;
 public record Options(
     FileSystemInfo? InputPath,
     DirectoryInfo? OutputPath,
-    bool ExtractKeyOnly,
+    bool ReadOnly,
     bool IgnoreCrc,
     bool Verbose,
     bool Overwrite,
