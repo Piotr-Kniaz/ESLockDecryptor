@@ -1,8 +1,8 @@
-namespace ESLockDecryptor.Models;
+namespace ESLockDecryptor.Configuration;
 
-public record class RawDecryptOptions
+public record RawDecryptConfig
 {
-    public RawDecryptOptions(RawDecryptMode mode = RawDecryptMode.Auto, int? size = null)
+    public RawDecryptConfig(RawDecryptMode mode = RawDecryptMode.Auto, int? size = null)
     {
         if (mode == RawDecryptMode.Partial)
         {
@@ -15,8 +15,8 @@ public record class RawDecryptOptions
         Mode = mode;
         EncryptedBlockSize = size;
     }
-    public RawDecryptMode Mode { get; init; }
-    public int? EncryptedBlockSize { get; init; }
+    public RawDecryptMode Mode { get; }
+    public int? EncryptedBlockSize { get; }
 }
 
 public enum RawDecryptMode

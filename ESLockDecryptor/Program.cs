@@ -1,6 +1,5 @@
 ﻿using System.CommandLine;
-using ESLockDecryptor.Models;
-using ESLockDecryptor.Services;
+using ESLockDecryptor.Configuration;
 
 const string description = "ESLockDecryptor is a forensic tool for recovering ES File Explorer encrypted files (.eslock)";
 
@@ -21,16 +20,6 @@ var outputArgument = new Argument<DirectoryInfo?>("output")
 }
 .AcceptLegalFilePathsOnly();
 
-var ignoreCrcOption = new Option<bool>(name: "--ignore-crc")
-{
-    Description = "Try to process even if the footer CRC check fails."
-};
-
-var readOnlyOption = new Option<bool>(name: "--read-only")
-{
-    Description = "Only read and print metadata (no decryption)."
-};
-
 var verboseOption = new Option<bool>(name: "--verbose", aliases: ["-v"])
 {
     Description = "Enable detailed logging."
@@ -41,24 +30,34 @@ var overwriteOption = new Option<bool>(name: "--overwrite")
     Description = "Overwrite existing decrypted files."
 };
 
+var readOnlyOption = new Option<bool>(name: "--read-only")
+{
+    Description = "Only read and print metadata (no decryption)."
+};
+
+var ignoreCrcOption = new Option<bool>(name: "--ignore-crc")
+{
+    Description = "Try to process even if the footer CRC check fails."
+};
+
 var passwordOption = new Option<string>(name: "--password", aliases: ["-p"])
 {
-    Description = "Password for decryption."
+    Description = "Use provided password for decryption, ignore key from metadata."
 };
 
 var keyOption = new Option<string>(name: "--key", aliases: ["-k"])
 {
-    Description = "Hexadecimal key for decryption."
+    Description = "Use provided key (hexadecimal string) for decryption, ignore key from metadata."
 };
 
 var heuristicOption = new Option<bool>(name: "--heuristic")
 {
-    Description = "Enable heuristic footer detection for files with corrupted or missing footers."
+    Description = "Enable heuristic footer detection."
 };
 
-var rawDecryptOption = new Option<RawDecryptOptions?>(name: "--raw-decrypt")
+var rawDecryptOption = new Option<RawDecryptConfig?>(name: "--raw-decrypt")
 {
-    Description = "Enables raw decryption. Ignore metadata.",
+    Description = "Enable raw decryption. Ignore metadata.",
     HelpName = "auto|full|partial[:size]",
     Arity = ArgumentArity.ZeroOrOne
 };
@@ -69,11 +68,9 @@ var rawDecryptOption = new Option<RawDecryptOptions?>(name: "--raw-decrypt")
 
 rawDecryptOption.CustomParser = result =>
 {
-    // RawDecryptMode mode;
-
     if (result.Tokens.Count == 0)
     {
-        return new RawDecryptOptions(RawDecryptMode.Auto);
+        return new RawDecryptConfig(RawDecryptMode.Auto);
     }
 
     string? value = result.Tokens[0].Value;
@@ -108,10 +105,10 @@ rawDecryptOption.CustomParser = result =>
             return null;
         }
 
-        return new RawDecryptOptions(RawDecryptMode.Partial, size);
+        return new RawDecryptConfig((RawDecryptMode)mode, size);
     }
 
-    return new RawDecryptOptions((RawDecryptMode)mode);
+    return new RawDecryptConfig((RawDecryptMode)mode);
 };
 
 #endregion
@@ -146,12 +143,32 @@ keyOption.Validators.Add(result =>
 
 rootCommand.Validators.Add(result =>
 {
+    bool hasOutputPath = result.GetResult(outputArgument) is not null;
     bool hasKey = result.GetResult(keyOption) is not null;
-    bool hasPass = result.GetResult(passwordOption) is not null;
+    bool hasPassword = result.GetResult(passwordOption) is not null;
+    bool enabledOverwrite = result.GetResult(overwriteOption) is not null;
+    bool enabledReadOnly = result.GetResult(readOnlyOption) is not null;
+    bool enabledRawDecrypt = result.GetResult(rawDecryptOption) is not null;
 
-    if (hasKey && hasPass)
+    if (enabledReadOnly && hasOutputPath)
     {
-        result.AddError("You cannot specify both '--key' and '--password'. Please choose one.");
+        result.AddError("The '--read-only' option cannot be used with an output path. " +
+            "If you need to save the log to file, redirect the console output instead.");
+    }
+
+    if (enabledReadOnly && enabledOverwrite)
+    {
+        result.AddError("The '--read-only' and '--overwrite' options cannot be used together.");
+    }
+
+    if (hasKey && hasPassword)
+    {
+        result.AddError("The '--key' and '--password' options cannot be used together. Please choose one.");
+    }
+
+    if (enabledRawDecrypt && !(hasKey || hasPassword))
+    {
+        result.AddError("When using '--raw-decrypt', either '--key' or '--password' must be specified.");
     }
 });
 
@@ -159,15 +176,17 @@ rootCommand.Validators.Add(result =>
 
 rootCommand.SetAction(parseResult =>
 {
-    var options = new Options(
+    var options = new ProcessingConfig(
         InputPath: parseResult.GetValue(inputArgument),
         OutputPath: parseResult.GetValue(outputArgument),
-        ReadOnly: parseResult.GetValue(readOnlyOption),
-        IgnoreCrc: parseResult.GetValue(ignoreCrcOption),
         Verbose: parseResult.GetValue(verboseOption),
         Overwrite: parseResult.GetValue(overwriteOption),
+        ReadOnly: parseResult.GetValue(readOnlyOption),
+        IgnoreCrc: parseResult.GetValue(ignoreCrcOption),
         Password: parseResult.GetValue(passwordOption),
-        Key: parseResult.GetValue(keyOption)
+        Key: parseResult.GetValue(keyOption),
+        Heuristic: parseResult.GetValue(heuristicOption),
+        RawDecryptConfig: parseResult.GetValue(rawDecryptOption)
     );
 
     ESLockDecryptor.EslockProcessor.Execute(options);

@@ -1,11 +1,12 @@
 using System.Security.Cryptography;
+using ESLockDecryptor.Configuration;
 using ESLockDecryptor.Services;
 
 namespace ESLockDecryptor;
 
 public static class EslockDecryptor
 {
-    public static void DecryptFile(string inputFilePath, string outputFilePath, Options options, byte[]? providedKey = null)
+    public static void DecryptFile(string inputFilePath, string outputFilePath, ProcessingConfig options, byte[]? providedKey = null)
     {
         var logBuffer = new LogBuffer();
         logBuffer.AddLine($"\nFile processing: {Path.GetFileName(inputFilePath)}");
@@ -111,7 +112,7 @@ public static class EslockDecryptor
         }
     }
 
-    public static void DecryptDirectory(string inputDirectory, string outputDirectory, Options options)
+    public static void DecryptDirectory(string inputDirectory, string outputDirectory, ProcessingConfig options)
     {
         Console.WriteLine($"\nRecursive directory processing: {inputDirectory}");
 

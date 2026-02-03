@@ -1,6 +1,5 @@
 using System.Buffers.Binary;
 using System.IO.Hashing;
-using ESLockDecryptor.Interfaces;
 using ESLockDecryptor.Models;
 
 namespace ESLockDecryptor.IO;
@@ -25,7 +24,9 @@ public class StandardFooterReader : IFooterReader
 
         if (footerLength <= 0 || footerLength > maxFooterSize || footerLength >= fileLength)
         {
-            throw new InvalidDataException("Incorrect footer length. Use the --heuristic parameter to attempt to find a valid footer.");
+            throw new InvalidDataException(
+                "Incorrect footer length. Use the '--heuristic' option to try to find a valid footer."
+            );
         }
 
         var footer = buffer[^footerLength..];
@@ -65,7 +66,6 @@ public class StandardFooterReader : IFooterReader
             EncryptedOriginalName = encryptedOriginalName.ToArray(),
             StoredCrc = storedCrc,
             CalculatedCrc = calculatedCrc,
-            IsCrcValid = storedCrc == calculatedCrc,
             Key = key.ToArray(),
             FooterLength = footerLength
         };

@@ -1,11 +1,11 @@
 using System.Reflection;
-using ESLockDecryptor.Services;
+using ESLockDecryptor.Configuration;
 
 namespace ESLockDecryptor;
 
 public static class EslockProcessor
 {
-    public static void Execute(Options options)
+    public static void Execute(ProcessingConfig options)
     {
         PrintInfo();
         
