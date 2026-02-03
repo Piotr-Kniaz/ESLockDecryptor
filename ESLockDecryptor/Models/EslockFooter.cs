@@ -3,6 +3,7 @@ namespace ESLockDecryptor.Models;
 public record EslockFooter
 {
     public byte[] RawData { get; init; } = [];
+    public long StartFooterPosition { get; init; }
     public bool IsPartialEncryption { get; init; }
     public int EncryptedBlockSize { get; init; }
     public int OriginalNameLength { get; init; }

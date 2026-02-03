@@ -60,6 +60,7 @@ public class StandardFooterReader : IFooterReader
         return new EslockFooter
         {
             RawData = footer.ToArray(),
+            StartFooterPosition = fileLength - footerLength,
             IsPartialEncryption = isPartialEncryption,
             EncryptedBlockSize = encryptedBlockSize,
             OriginalNameLength = originalNameLength,
