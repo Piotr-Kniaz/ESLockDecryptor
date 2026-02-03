@@ -9,12 +9,7 @@ public class Decryptor
 {
     public void DecryptStream(Stream inputStream, Stream outputStream, DecryptionConfig config)
     {
-        using var aes = Aes.Create();
-        aes.Key = config.Key;
-        aes.IV = IV;
-        aes.Mode = CipherMode.CFB;
-        aes.Padding = PaddingMode.None;
-        aes.FeedbackSize = 128;
+        using var aes = CreateAes(config.Key);
         using var decryptor = aes.CreateDecryptor();
 
         long originalFileLength = config.FooterStartPosition ?? inputStream.Length;
@@ -52,17 +47,23 @@ public class Decryptor
 
     public string DecryptFileName(byte[] encryptedName, byte[] key, int nameLength)
     {
-        using var aes = Aes.Create();
-        aes.Key = key;
-        aes.IV = IV;
-        aes.Mode = CipherMode.CFB;
-        aes.Padding = PaddingMode.None;
-        aes.FeedbackSize = 128;
+        using var aes = CreateAes(key);
         using var decryptor = aes.CreateDecryptor();
 
         var decryptedNameBytes = decryptor.TransformFinalBlock(encryptedName, 0, encryptedName.Length);
 
         return Encoding.UTF8.GetString(decryptedNameBytes, 0, nameLength);
+    }
+
+    private static Aes CreateAes(byte[] key)
+    {
+        var aes = Aes.Create();
+        aes.Key = key;
+        aes.IV = IV;
+        aes.Mode = CipherMode.CFB;
+        aes.Padding = PaddingMode.None;
+        aes.FeedbackSize = 128;
+        return aes;
     }
 
     private static byte[] IV { get; } = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
