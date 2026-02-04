@@ -1,4 +1,5 @@
 ﻿using System.CommandLine;
+using ESLockDecryptor.Processing;
 using ESLockDecryptor.Configuration;
 
 const string description = "ESLockDecryptor is a forensic tool for recovering ES File Explorer encrypted files (.eslock)";
@@ -176,9 +177,30 @@ rootCommand.Validators.Add(result =>
 
 rootCommand.SetAction(parseResult =>
 {
-    var options = new ProcessingConfig(
-        InputPath: parseResult.GetValue(inputArgument),
-        OutputPath: parseResult.GetValue(outputArgument),
+    bool isReadOnlyEnabled = parseResult.GetValue(readOnlyOption);
+
+    string exeDirectory = Path.GetDirectoryName(Environment.ProcessPath) ?? Directory.GetCurrentDirectory();
+
+    FileSystemInfo inputPath = parseResult.GetValue(inputArgument) ?? new DirectoryInfo(exeDirectory);
+    DirectoryInfo? outputPath = parseResult.GetValue(outputArgument);
+
+    if (outputPath is null && !isReadOnlyEnabled)
+    {
+        string timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+        string baseDir = inputPath switch
+        {
+            FileInfo fileInfo => Path.GetDirectoryName(fileInfo.FullName) ?? exeDirectory,
+            DirectoryInfo dirInfo => (dirInfo.FullName == exeDirectory)
+                ? dirInfo.FullName
+                : dirInfo.Parent?.FullName ?? dirInfo.FullName,
+            _ => Directory.GetCurrentDirectory()
+        };
+        outputPath = new DirectoryInfo(Path.Combine(baseDir, $"decrypted-{timestamp}"));
+    }
+
+    var config = new ProcessingConfig(
+        InputPath: inputPath,
+        OutputPath: outputPath,
         Verbose: parseResult.GetValue(verboseOption),
         Overwrite: parseResult.GetValue(overwriteOption),
         ReadOnly: parseResult.GetValue(readOnlyOption),
@@ -189,7 +211,8 @@ rootCommand.SetAction(parseResult =>
         RawDecryptConfig: parseResult.GetValue(rawDecryptOption)
     );
 
-    ESLockDecryptor.EslockProcessor.Execute(options);
+    var processor = new EslockProcessor(config);
+    processor.Execute();
     return 0;
 });
 

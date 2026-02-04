@@ -1,7 +1,7 @@
 namespace ESLockDecryptor.Configuration;
 
 public record ProcessingConfig(
-    FileSystemInfo? InputPath,
+    FileSystemInfo InputPath,
     DirectoryInfo? OutputPath,
     bool Verbose,
     bool Overwrite,

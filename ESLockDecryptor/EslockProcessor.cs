@@ -63,25 +63,25 @@ public static class EslockProcessor
 
     private static void PrintInfo()
     {
-        Console.WriteLine("=======================================================================");
-        Console.WriteLine("                            ESLockDecryptor");
-        Console.WriteLine("=======================================================================");
-        Console.WriteLine("Forensic tool for recovering ES File Explorer encrypted files (.eslock)");
-        Console.WriteLine("                         ! FOR LEGAL USE ONLY !");
-        Console.WriteLine($"         Version {Version} | (C) 2025-2026 Piotr Kniaz | MIT License");
-        Console.WriteLine("=======================================================================");
+        Console.WriteLine("================================================================================");
+        Console.WriteLine("                                 ESLockDecryptor");
+        Console.WriteLine("================================================================================");
+        Console.WriteLine("     Forensic tool for recovering ES File Explorer encrypted files (.eslock)");
+        Console.WriteLine("                             ! FOR LEGAL USE ONLY !");
+        Console.WriteLine("              Version 2.0 | (C) 2025-2026 Piotr Kniaz | MIT License");
+        Console.WriteLine("================================================================================");
     }
 
     private static void PrintStats()
     {
-        Console.WriteLine("\n=======================================================================");
+        Console.WriteLine("\n================================================================================");
         Console.WriteLine("Processing complete.");
         Console.WriteLine($"  Files processed:  {EslockDecryptor.FilesProcessed}");
         Console.WriteLine($"  Files decrypted:  {EslockDecryptor.FilesDecrypted}");
         Console.WriteLine($"  Files skipped:    {EslockDecryptor.FilesSkipped}");
         Console.WriteLine($"  Warnings:         {EslockDecryptor.Warnings}");
         Console.WriteLine($"  Errors:           {EslockDecryptor.Errors}");
-        Console.WriteLine("=======================================================================");
+        Console.WriteLine("================================================================================");
     }
 
     public static readonly string Version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(2) ?? "---";
