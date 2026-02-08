@@ -32,13 +32,13 @@ public class EslockProcessor(ProcessingConfig config)
     {
         BufferedConsoleLogger logger = new();
         logger.AddInfo($"\nProcessing file: {inputFile.FullName}");
+        EslockFooter? footer;
 
         try
         {
             if (Config.ReadOnly)
             {
-                IFooterReader footerReader = Config.Heuristic ? new HeuristicFooterReader() : new StandardFooterReader();
-                EslockFooter? footer = footerReader.ReadFooter(inputFile.FullName);
+                footer = ReadFooter(inputFile);
                 if (footer is not null)
                 {
                     LogMetadata(inputFile.Length, footer, logger);
@@ -60,19 +60,39 @@ public class EslockProcessor(ProcessingConfig config)
                 throw new Exception("Output directory must be specified.");
             }
 
+            string outputPath = outputDirectory.FullName;
+            DecryptionConfig decryptConfig;
+
+            if (!Directory.Exists(outputPath))
+            {
+                Directory.CreateDirectory(outputPath);
+                logger.AddInfo($"Created output directory: {outputPath}");
+            }
+
             if (Config.RawDecryptConfig is not null && !Config.Heuristic)
             {
-                DecryptionConfig decryptionConfig = GetDecryptionConfig(inputFile, null, logger);
-                var outputFilePath = Path.Combine(outputDirectory.FullName, inputFile.Name);
+                decryptConfig = GetDecryptionConfig(inputFile, null, logger);
+                outputPath = Path.Combine(outputDirectory.FullName, inputFile.Name);
 
-                using var inputFileStream = new FileStream(inputFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
-                using var outputFileStream = new FileStream(outputFilePath, FileMode.Create, FileAccess.Write);
-
-                logger.AddInfo($"Output path: {outputFilePath}");
-                Decryptor.DecryptStream(inputFileStream, outputFileStream, decryptionConfig);
+                DecryptFile(inputFile.FullName, outputPath, decryptConfig, logger);
                 logger.AddSuccess($"File decrypted: {inputFile.Name}");
                 return;
             }
+
+            footer = ReadFooter(inputFile);
+            decryptConfig = GetDecryptionConfig(inputFile, footer, logger);
+            string? originalFileName = footer?.EncryptedOriginalName is not null && footer.OriginalNameLength is not null
+                ? Decryptor.DecryptFileName(footer.EncryptedOriginalName, decryptConfig.Key, (int)footer.OriginalNameLength)
+                : null;
+            
+            if (originalFileName is not null)
+            {
+                logger.AddInfo($"  Original file name: {originalFileName}");
+            }
+            outputPath = Path.Combine(outputDirectory.FullName, originalFileName ?? inputFile.Name);
+
+            DecryptFile(inputFile.FullName, outputPath, decryptConfig, logger);
+            logger.AddSuccess($"File decrypted: {inputFile.Name}");
         }
         catch (Exception ex)
         {
@@ -85,17 +105,48 @@ public class EslockProcessor(ProcessingConfig config)
         {
             logger.Flush();
         }
-
-        // Implementation of file processing logic goes here
     }
 
     private void ProcessingDirectory(DirectoryInfo inputDirectory, DirectoryInfo? outputDirectory)
     {
         Console.WriteLine($"\nProcessing directory: {Config.InputPath.FullName}");
 
-        // Implementation of directory processing logic goes here
+        var eslockFiles = Directory.GetFiles(inputDirectory.FullName, "*.eslock", SearchOption.AllDirectories);
+
+        if (eslockFiles.Length == 0)
+        {
+            Console.WriteLine("  No .eslock files found.");
+            return;
+        }
+
+        Console.WriteLine($"  Found {eslockFiles.Length} file(s).");
+
+        if (!Config.ReadOnly && outputDirectory is not null && !Directory.Exists(outputDirectory.FullName))
+        {
+            Directory.CreateDirectory(outputDirectory.FullName);
+            Console.WriteLine($"Created output directory: {outputDirectory.FullName}");
+        }
+
+        Parallel.ForEach(eslockFiles, eslockFile =>
+        {
+            var relativePath = Path.GetRelativePath(inputDirectory.FullName, eslockFile);
+            var relativeDir = Path.GetDirectoryName(relativePath);
+
+            var targetDirectory = string.IsNullOrEmpty(relativeDir)
+                ? outputDirectory!.FullName
+                : Path.Combine(outputDirectory!.FullName, relativeDir);
+
+            Directory.CreateDirectory(targetDirectory);
+
+            ProcessingFile(new FileInfo(eslockFile), new DirectoryInfo(targetDirectory));
+        });
     }
 
+    private EslockFooter? ReadFooter(FileInfo file)
+    {
+        IFooterReader footerReader = Config.Heuristic ? new HeuristicFooterReader() : new StandardFooterReader();
+        return footerReader.ReadFooter(file.FullName);
+    }
     private void LogMetadata(long fileLength, EslockFooter footer, BufferedConsoleLogger logger)
     {
         string unknown = "unknown";
@@ -113,7 +164,6 @@ public class EslockProcessor(ProcessingConfig config)
         logger.AddInfo("File metadata:");
         logger.AddInfo($"  File size: {fileLength} bytes");
         logger.AddInfo($"  Footer length: {footer.FooterLength.ToString() ?? unknown} bytes");
-        // logger.AddInfo($"  Original name: {metadata.OriginalFileName}");
         logger.AddInfo($"  CRC check: {crcStatus}");
         logger.AddInfo($"    Stored CRC: {storedCrc}");
         logger.AddInfo($"    Calculated CRC: {calculatedCrc}");
@@ -178,6 +228,15 @@ public class EslockProcessor(ProcessingConfig config)
             return footer.Key;
         }
         throw new Exception("Key for decryption not found or corrupted.");
+    }
+
+    private void DecryptFile(string inputPath, string outputPath, DecryptionConfig config, BufferedConsoleLogger logger)
+    {
+        using var inputFileStream = new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var outputFileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write);
+
+        logger.AddInfo($"Output path: {outputPath}");
+        Decryptor.DecryptStream(inputFileStream, outputFileStream, config);
     }
 
     private static void PrintInfo()
