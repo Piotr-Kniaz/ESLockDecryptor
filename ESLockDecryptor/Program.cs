@@ -162,6 +162,11 @@ rootCommand.Validators.Add(result =>
         result.AddError("The '--read-only' and '--overwrite' options cannot be used together.");
     }
 
+    if (enabledReadOnly && enabledRawDecrypt)
+    {
+        result.AddError("The '--read-only' and '--raw-decrypt' options cannot be used together.");
+    }
+
     if (hasKey && hasPassword)
     {
         result.AddError("The '--key' and '--password' options cannot be used together. Please choose one.");
@@ -178,6 +183,7 @@ rootCommand.Validators.Add(result =>
 rootCommand.SetAction(parseResult =>
 {
     bool isReadOnlyEnabled = parseResult.GetValue(readOnlyOption);
+    string? key = parseResult.GetValue(keyOption);
 
     string exeDirectory = Path.GetDirectoryName(Environment.ProcessPath) ?? Directory.GetCurrentDirectory();
 
@@ -206,7 +212,7 @@ rootCommand.SetAction(parseResult =>
         ReadOnly: parseResult.GetValue(readOnlyOption),
         IgnoreCrc: parseResult.GetValue(ignoreCrcOption),
         Password: parseResult.GetValue(passwordOption),
-        Key: parseResult.GetValue(keyOption),
+        Key: key is null ? null : Convert.FromHexString(key),
         Heuristic: parseResult.GetValue(heuristicOption),
         RawDecryptConfig: parseResult.GetValue(rawDecryptOption)
     );

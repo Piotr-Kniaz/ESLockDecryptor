@@ -8,7 +8,7 @@ public record ProcessingConfig(
     bool ReadOnly,
     bool IgnoreCrc,
     string? Password,
-    string? Key,
+    byte[]? Key,
     bool Heuristic,
     RawDecryptConfig? RawDecryptConfig
 );

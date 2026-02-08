@@ -2,15 +2,16 @@ namespace ESLockDecryptor.Models;
 
 public record EslockFooter
 {
-    public byte[] RawData { get; init; } = [];
-    public long StartFooterPosition { get; init; }
-    public bool IsPartialEncryption { get; init; }
-    public int EncryptedBlockSize { get; init; }
-    public int OriginalNameLength { get; init; }
-    public byte[] EncryptedOriginalName { get; init; } = [];
-    public uint StoredCrc { get; init; }
-    public uint CalculatedCrc { get; init; }
-    public bool IsCrcValid { get => StoredCrc == CalculatedCrc; }
-    public byte[] Key { get; init; } = [];
-    public int FooterLength { get; init; }
+    public required long StartFooterPosition;
+    public required bool IsParsedSuccessfully;
+    public byte[] RawData = [];
+    public bool? IsPartialEncryption;
+    public int? EncryptedBlockSize;
+    public int? OriginalNameLength;
+    public byte[]? EncryptedOriginalName;
+    public uint? StoredCrc;
+    public uint? CalculatedCrc;
+    public bool IsCrcValid { get => StoredCrc is not null && StoredCrc == CalculatedCrc; }
+    public byte[]? Key = [];
+    public int? FooterLength;
 }

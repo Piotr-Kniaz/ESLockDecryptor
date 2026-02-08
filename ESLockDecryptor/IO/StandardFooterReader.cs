@@ -48,7 +48,7 @@ public class StandardFooterReader : IFooterReader
         }
 
         int originalNameLength = footer[currentPos++];
-        var encryptedOriginalName = new ReadOnlySpan<byte>();
+        ReadOnlySpan<byte> encryptedOriginalName;
 
         if (originalNameLength != -1 && originalNameLength != 255)
         {
@@ -56,11 +56,16 @@ public class StandardFooterReader : IFooterReader
             encryptedOriginalName = footer[currentPos..(currentPos + normalizedNameLen)];
             // currentPos += normalizedNameLen;
         }
+        else
+        {
+            encryptedOriginalName = null;
+        }
 
         return new EslockFooter
         {
-            RawData = footer.ToArray(),
             StartFooterPosition = fileLength - footerLength,
+            IsParsedSuccessfully = true,
+            RawData = footer.ToArray(),
             IsPartialEncryption = isPartialEncryption,
             EncryptedBlockSize = encryptedBlockSize,
             OriginalNameLength = originalNameLength,

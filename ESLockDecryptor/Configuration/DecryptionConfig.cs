@@ -2,8 +2,9 @@ namespace ESLockDecryptor.Configuration;
 
 public record DecryptionConfig
 {
-    public byte[] Key { get; init; } = [];
-    public bool IsPartialDecryption { get; init; }
+    public required long OriginalFileLength;
+    public required byte[] Key;
+    public required bool IsPartialDecryption;
     public int? EncryptedBlockSize
     {
         get => IsPartialDecryption ? _encryptedBlockSize : null;
@@ -27,15 +28,7 @@ public record DecryptionConfig
             }
         }
     }
-    public long? FooterStartPosition
-    {
-        get => _footerStartPosition;
-        init => _footerStartPosition =
-            (value >= 0 && value is not null) || value is null
-                ? value
-                : throw new ArgumentException("Footer start position must be non-negative.");
-    }
+    public bool IsFileTruncated = false;
 
     private int? _encryptedBlockSize;
-    private long? _footerStartPosition;
 }

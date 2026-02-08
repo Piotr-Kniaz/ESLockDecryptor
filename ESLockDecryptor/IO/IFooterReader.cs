@@ -4,5 +4,5 @@ namespace ESLockDecryptor.IO;
 
 public interface IFooterReader
 {
-    EslockFooter ReadFooter(string filePath);
+    EslockFooter? ReadFooter(string filePath);
 }

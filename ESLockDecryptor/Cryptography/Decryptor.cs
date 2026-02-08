@@ -12,14 +12,18 @@ public class Decryptor
         using var aes = CreateAes(config.Key);
         using var decryptor = aes.CreateDecryptor();
 
-        long originalFileLength = config.FooterStartPosition ?? inputStream.Length;
+        long originalFileLength = config.OriginalFileLength;
 
         if (config.IsPartialDecryption)
         {
             int firstBlockLength = config.EncryptedBlockSize ?? 1024;
-            int lastBlockLength = config.FooterStartPosition is null ? 0 : firstBlockLength;
-            // If FooterStartPosition is null, the last block is considered truncated.
+            int lastBlockLength = config.IsFileTruncated ? 0 : firstBlockLength;
             long middlePartLength = originalFileLength - (firstBlockLength + lastBlockLength);
+
+            if (firstBlockLength + lastBlockLength > originalFileLength)
+            {
+                throw new InvalidOperationException("Encrypted blocks are larger than the file length.");
+            }
 
             var buffer = new byte[firstBlockLength];
             inputStream.ReadExactly(buffer, 0, buffer.Length);
