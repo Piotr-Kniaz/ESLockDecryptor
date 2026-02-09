@@ -1,10 +1,8 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-aot AS build
 
 WORKDIR /src
 
 ARG RID
-
-RUN apt-get update && apt-get install -y clang zlib1g-dev
 
 COPY . .
 
