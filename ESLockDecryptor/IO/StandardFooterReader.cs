@@ -24,9 +24,8 @@ public class StandardFooterReader : IFooterReader
 
         if (footerLength <= 0 || footerLength > maxFooterSize || footerLength >= fileLength)
         {
-            throw new InvalidDataException(
-                "Incorrect footer length. Use the '--heuristic' option to try to find a valid footer."
-            );
+            throw new InvalidDataException("Incorrect footer length. "
+                + "Use the '--heuristic' option to try to find a valid footer.");
         }
 
         var footer = buffer[^footerLength..];
@@ -47,17 +46,18 @@ public class StandardFooterReader : IFooterReader
             currentPos += 4;
         }
 
-        int originalNameLength = footer[currentPos++];
+        int? originalNameLength = footer[currentPos++];
         ReadOnlySpan<byte> encryptedOriginalName;
 
         if (originalNameLength != -1 && originalNameLength != 255)
         {
-            int normalizedNameLen = ((originalNameLength - 1 >> 4) + 1) << 4;
+            int normalizedNameLen = (((int)originalNameLength - 1 >> 4) + 1) << 4;
             encryptedOriginalName = footer[currentPos..(currentPos + normalizedNameLen)];
             // currentPos += normalizedNameLen;
         }
         else
         {
+            originalNameLength = null;
             encryptedOriginalName = null;
         }
 

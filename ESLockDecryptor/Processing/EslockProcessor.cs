@@ -66,16 +66,23 @@ public class EslockProcessor(ProcessingConfig config)
             if (!Directory.Exists(outputPath))
             {
                 Directory.CreateDirectory(outputPath);
-                logger.AddInfo($"Created output directory: {outputPath}");
+                logger.AddInfo($"\nCreated output directory: {outputPath}");
             }
 
             if (Config.RawDecryptConfig is not null && !Config.Heuristic)
             {
                 decryptConfig = GetDecryptionConfig(inputFile, null, logger);
-                outputPath = Path.Combine(outputDirectory.FullName, inputFile.Name);
+                outputPath = Path.Combine(outputDirectory.FullName, Path.GetFileNameWithoutExtension(inputFile.Name));
+
+                if (File.Exists(outputPath) && !Config.Overwrite)
+                {
+                    throw new Exception($"File {Path.GetFileNameWithoutExtension(outputPath)} exists in the output directory. "
+                        + "Use '--overwrite' to replace existing file.");
+                }
 
                 DecryptFile(inputFile.FullName, outputPath, decryptConfig, logger);
                 logger.AddSuccess($"File decrypted: {inputFile.Name}");
+                Stats.IncrementFilesDecrypted();
                 return;
             }
 
@@ -84,15 +91,33 @@ public class EslockProcessor(ProcessingConfig config)
             string? originalFileName = footer?.EncryptedOriginalName is not null && footer.OriginalNameLength is not null
                 ? Decryptor.DecryptFileName(footer.EncryptedOriginalName, decryptConfig.Key, (int)footer.OriginalNameLength)
                 : null;
-            
-            if (originalFileName is not null)
+            if (footer is not null && Config.Verbose)
             {
-                logger.AddInfo($"  Original file name: {originalFileName}");
+                LogMetadata(inputFile.Length, footer, logger);
+                if (originalFileName is not null)
+                    logger.AddInfo($"  Original file name: {originalFileName}");
             }
-            outputPath = Path.Combine(outputDirectory.FullName, originalFileName ?? inputFile.Name);
+            if (footer is not null && !footer.IsCrcValid)
+            {
+                if (!Config.IgnoreCrc)
+                {
+                    throw new Exception("CRC check failed. Skipping file. Use '--ignore-crc' to bypass this check.");
+                }
+                logger.AddWarning("CRC check failed. Metadata may be corrupted.");
+            }
+            outputPath = Path.Combine(
+                outputDirectory.FullName, 
+                originalFileName ?? Path.GetFileNameWithoutExtension(inputFile.Name));
+
+            if (File.Exists(outputPath) && !Config.Overwrite)
+            {
+                throw new Exception($"File {Path.GetFileNameWithoutExtension(outputPath)} exists in the output directory. "
+                    + "Use '--overwrite' to replace existing file.");
+            }
 
             DecryptFile(inputFile.FullName, outputPath, decryptConfig, logger);
             logger.AddSuccess($"File decrypted: {inputFile.Name}");
+            Stats.IncrementFilesDecrypted();
         }
         catch (Exception ex)
         {
@@ -124,21 +149,28 @@ public class EslockProcessor(ProcessingConfig config)
         if (!Config.ReadOnly && outputDirectory is not null && !Directory.Exists(outputDirectory.FullName))
         {
             Directory.CreateDirectory(outputDirectory.FullName);
-            Console.WriteLine($"Created output directory: {outputDirectory.FullName}");
+            Console.WriteLine($"\nCreated output directory: {outputDirectory.FullName}");
         }
 
         Parallel.ForEach(eslockFiles, eslockFile =>
         {
-            var relativePath = Path.GetRelativePath(inputDirectory.FullName, eslockFile);
-            var relativeDir = Path.GetDirectoryName(relativePath);
+            if (!Config.ReadOnly && outputDirectory is not null)
+            {
+                var relativePath = Path.GetRelativePath(inputDirectory.FullName, eslockFile);
+                var relativeDir = Path.GetDirectoryName(relativePath);
 
-            var targetDirectory = string.IsNullOrEmpty(relativeDir)
-                ? outputDirectory!.FullName
-                : Path.Combine(outputDirectory!.FullName, relativeDir);
+                var targetDirectory = string.IsNullOrEmpty(relativeDir)
+                    ? outputDirectory.FullName
+                    : Path.Combine(outputDirectory.FullName, relativeDir);
 
-            Directory.CreateDirectory(targetDirectory);
+                Directory.CreateDirectory(targetDirectory);
 
-            ProcessingFile(new FileInfo(eslockFile), new DirectoryInfo(targetDirectory));
+                ProcessingFile(new FileInfo(eslockFile), new DirectoryInfo(targetDirectory));
+            }
+            else
+            {
+                ProcessingFile(new FileInfo(eslockFile), null);
+            }
         });
     }
 
