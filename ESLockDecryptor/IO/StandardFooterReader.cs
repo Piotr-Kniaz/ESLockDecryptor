@@ -38,7 +38,7 @@ public class StandardFooterReader : IFooterReader
         int currentPos = 0;
         bool isPartialEncryption = footer[currentPos++] != 0xFF;
         
-        int encryptedBlockSize = 0;
+        int? encryptedBlockSize = null;
 
         if (isPartialEncryption)
         {
@@ -49,9 +49,14 @@ public class StandardFooterReader : IFooterReader
         int? originalNameLength = footer[currentPos++];
         ReadOnlySpan<byte> encryptedOriginalName;
 
-        if (originalNameLength != -1 && originalNameLength != 255)
+        if (originalNameLength != 255)
         {
             int normalizedNameLen = (((int)originalNameLength - 1 >> 4) + 1) << 4;
+            if (currentPos + normalizedNameLen > footer.Length)
+            {
+                throw new Exception("The encrypted name length is out of range of the footer. "
+                    + "Try using the '--heuristic' option.");
+            }
             encryptedOriginalName = footer[currentPos..(currentPos + normalizedNameLen)];
             // currentPos += normalizedNameLen;
         }

@@ -218,24 +218,29 @@ public class EslockProcessor(ProcessingConfig config)
 
         if (Config.RawDecryptConfig is not null)
         {
+            bool isPartial = isPartialProvided ?? footer?.IsPartialEncryption ?? isPartialDefault;
             return new DecryptionConfig()
             {
                 OriginalFileLength = footer?.StartFooterPosition ?? fileLength,
                 Key = key,
                 IsPartialDecryption = footer?.IsPartialEncryption ?? isPartialProvided ?? isPartialDefault,
-                EncryptedBlockSize = footer?.EncryptedBlockSize 
-                    ?? Config.RawDecryptConfig.EncryptedBlockSize ?? encryptedBlockDefault,
+                EncryptedBlockSize = isPartial
+                    ? (footer?.EncryptedBlockSize ?? Config.RawDecryptConfig.EncryptedBlockSize ?? encryptedBlockDefault)
+                    : null,
                 IsFileTruncated = footer is null
             };
         }
         if (footer is not null)
         {
+            bool isPartial = footer.IsPartialEncryption ?? isPartialDefault;
             return new DecryptionConfig()
             {
                 OriginalFileLength = footer.StartFooterPosition,
                 Key = key,
-                IsPartialDecryption = footer.IsPartialEncryption ?? isPartialDefault,
-                EncryptedBlockSize = footer.EncryptedBlockSize ?? encryptedBlockDefault,
+                IsPartialDecryption = isPartial,
+                EncryptedBlockSize = isPartial
+                    ? footer.EncryptedBlockSize ?? encryptedBlockDefault
+                    : null,
                 IsFileTruncated = false
             };
         }
