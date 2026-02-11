@@ -219,30 +219,45 @@ public class EslockProcessor(ProcessingConfig config)
         if (Config.RawDecryptConfig is not null)
         {
             bool isPartial = isPartialProvided ?? footer?.IsPartialEncryption ?? isPartialDefault;
-            return new DecryptionConfig()
+            if (isPartial)
             {
-                OriginalFileLength = footer?.StartFooterPosition ?? fileLength,
-                Key = key,
-                IsPartialDecryption = footer?.IsPartialEncryption ?? isPartialProvided ?? isPartialDefault,
-                EncryptedBlockSize = isPartial
-                    ? (footer?.EncryptedBlockSize ?? Config.RawDecryptConfig.EncryptedBlockSize ?? encryptedBlockDefault)
-                    : null,
-                IsFileTruncated = footer is null
-            };
+                return DecryptionConfig.CreatePartialEncrypt(
+                    originalFileLength: footer?.StartFooterPosition ?? fileLength,
+                    key: key,
+                    encryptedBlockSize: Config.RawDecryptConfig.EncryptedBlockSize
+                        ?? footer?.EncryptedBlockSize ?? encryptedBlockDefault,
+                    isFileTruncated: footer is null
+                );
+            }
+            else
+            {
+                return DecryptionConfig.CreateFullEncrypt(
+                    originalFileLength: footer?.StartFooterPosition ?? fileLength,
+                    key: key,
+                    isFileTruncated: footer is null
+                );
+            }
         }
         if (footer is not null)
         {
             bool isPartial = footer.IsPartialEncryption ?? isPartialDefault;
-            return new DecryptionConfig()
+            if (isPartial)
             {
-                OriginalFileLength = footer.StartFooterPosition,
-                Key = key,
-                IsPartialDecryption = isPartial,
-                EncryptedBlockSize = isPartial
-                    ? footer.EncryptedBlockSize ?? encryptedBlockDefault
-                    : null,
-                IsFileTruncated = false
-            };
+                return DecryptionConfig.CreatePartialEncrypt(
+                    originalFileLength: footer.StartFooterPosition,
+                    key: key,
+                    encryptedBlockSize: footer.EncryptedBlockSize ?? encryptedBlockDefault,
+                    isFileTruncated: false
+                );
+            }
+            else
+            {
+                return DecryptionConfig.CreateFullEncrypt(
+                    originalFileLength: footer.StartFooterPosition,
+                    key: key,
+                    isFileTruncated: false
+                );
+            }
         }
         throw new InvalidDataException("Not enough data to decrypt.");
     }
@@ -301,6 +316,5 @@ public class EslockProcessor(ProcessingConfig config)
 
     private StatisticService Stats { get; } = new();
     private ProcessingConfig Config { get; } = config;
-    private Decryptor Decryptor { get; } = new();
     private static string Version { get => Assembly.GetExecutingAssembly().GetName().Version?.ToString(2) ?? "---"; }
 }

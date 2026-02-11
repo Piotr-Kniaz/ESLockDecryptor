@@ -5,16 +5,15 @@ using ESLockDecryptor.Extensions;
 
 namespace ESLockDecryptor.Cryptography;
 
-public class Decryptor
+public static class Decryptor
 {
-    public void DecryptStream(Stream inputStream, Stream outputStream, DecryptionConfig config)
+    public static void DecryptStream(Stream inputStream, Stream outputStream, DecryptionConfig config)
     {
         using var aes = CreateAes(config.Key);
-        using var decryptor = aes.CreateDecryptor();
 
         long originalFileLength = config.OriginalFileLength;
 
-        if (config.IsPartialDecryption)
+        if (config.IsPartialEncryption)
         {
             int firstBlockLength = config.EncryptedBlockSize ?? 1024;
             int lastBlockLength = config.IsFileTruncated ? 0 : firstBlockLength;
@@ -27,7 +26,11 @@ public class Decryptor
 
             var buffer = new byte[firstBlockLength];
             inputStream.ReadExactly(buffer, 0, buffer.Length);
-            var decryptedFirstBlock = decryptor.TransformFinalBlock(buffer, 0, buffer.Length);
+            byte[] decryptedFirstBlock;
+            using (var decryptor = aes.CreateDecryptor())
+            {
+                decryptedFirstBlock = decryptor.TransformFinalBlock(buffer, 0, buffer.Length);
+            }
             outputStream.Write(decryptedFirstBlock, 0, decryptedFirstBlock.Length);
 
             if (middlePartLength > 0)
@@ -38,18 +41,23 @@ public class Decryptor
             if (lastBlockLength > 0)
             {
                 inputStream.ReadExactly(buffer, 0, buffer.Length);
-                var decryptedLastBytes = decryptor.TransformFinalBlock(buffer, 0, buffer.Length);
+                byte[] decryptedLastBytes;
+                using (var decryptor = aes.CreateDecryptor())
+                {
+                    decryptedLastBytes = decryptor.TransformFinalBlock(buffer, 0, buffer.Length);
+                }
                 outputStream.Write(decryptedLastBytes, 0, decryptedLastBytes.Length);
             }
         }
         else
         {
+            using var decryptor = aes.CreateDecryptor();
             using var cryptoStream = new CryptoStream(inputStream, decryptor, CryptoStreamMode.Read);
             cryptoStream.CopyTo(outputStream, count: originalFileLength);
         }
     }
 
-    public string DecryptFileName(byte[] encryptedName, byte[] key, int nameLength)
+    public static string DecryptFileName(byte[] encryptedName, byte[] key, int nameLength)
     {
         using var aes = CreateAes(key);
         using var decryptor = aes.CreateDecryptor();

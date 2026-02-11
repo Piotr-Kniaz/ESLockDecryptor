@@ -2,33 +2,44 @@ namespace ESLockDecryptor.Configuration;
 
 public record DecryptionConfig
 {
-    public required long OriginalFileLength;
-    public required byte[] Key;
-    public required bool IsPartialDecryption;
-    public int? EncryptedBlockSize
-    {
-        get => IsPartialDecryption ? _encryptedBlockSize : null;
-        init
-        {
-            if (value is not null)
-            {
-                if (!IsPartialDecryption)
-                    throw new ArgumentException("Encrypted block size can be set only for partial decryption.");
-                else if (value <= 0)
-                    throw new ArgumentException("Encrypted block size must be greater than zero.");
-                else
-                    _encryptedBlockSize = value;
-            }
-            else
-            {
-                if (IsPartialDecryption)
-                    _encryptedBlockSize = 1024;
-                else
-                    _encryptedBlockSize = value;
-            }
-        }
-    }
-    public bool IsFileTruncated = false;
+    public long OriginalFileLength { get; private init; }
+    public byte[] Key { get; private init; } = [];
+    public bool IsPartialEncryption { get; private init; }
+    public int? EncryptedBlockSize { get; private init; }
+    public bool IsFileTruncated { get; private init; }
 
-    private int? _encryptedBlockSize;
+    public static DecryptionConfig CreateFullEncrypt(long originalFileLength, byte[] key, bool isFileTruncated = false)
+    {
+        if (key.Length != 16)
+            throw new ArgumentException("Invalid key.", nameof(key));
+        
+        return new DecryptionConfig
+        {
+            OriginalFileLength = originalFileLength,
+            Key = key,
+            IsPartialEncryption = false,
+            EncryptedBlockSize = null,
+            IsFileTruncated = isFileTruncated
+        };
+    }
+
+    public static DecryptionConfig CreatePartialEncrypt(long originalFileLength, byte[] key,
+        int encryptedBlockSize = 1024, bool isFileTruncated = false)
+    {
+        if (key.Length != 16)
+            throw new ArgumentException("Invalid key.", nameof(key));
+        if (encryptedBlockSize > originalFileLength || encryptedBlockSize <= 0)
+            throw new ArgumentException("Invalid EncryptedBlockSize.", nameof(encryptedBlockSize));
+        
+        return new DecryptionConfig
+        {
+            OriginalFileLength = originalFileLength,
+            Key = key,
+            IsPartialEncryption = true,
+            EncryptedBlockSize = encryptedBlockSize,
+            IsFileTruncated = isFileTruncated
+        };
+    }
+
+    private DecryptionConfig() { }
 }
