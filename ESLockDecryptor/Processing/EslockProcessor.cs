@@ -179,7 +179,7 @@ public class EslockProcessor(ProcessingConfig config)
         IFooterReader footerReader = Config.Heuristic ? new HeuristicFooterReader() : new StandardFooterReader();
         return footerReader.ReadFooter(file.FullName);
     }
-    private void LogMetadata(long fileLength, EslockFooter footer, BufferedConsoleLogger logger)
+    private static void LogMetadata(long fileLength, EslockFooter footer, BufferedConsoleLogger logger)
     {
         string unknown = "unknown";
         string crcStatus = footer.IsCrcValid ? "[MATCH]" : "[MISMATCH]";
@@ -193,8 +193,9 @@ public class EslockProcessor(ProcessingConfig config)
         };
         string key = footer.Key is not null ? Convert.ToHexString(footer.Key) : unknown;
 
-        logger.AddInfo("File metadata:");
         logger.AddInfo($"  File size: {fileLength} bytes");
+        logger.AddInfo($"  Footer offset: {footer.FooterOffset} bytes");
+        logger.AddInfo("Metadata:");
         logger.AddInfo($"  Footer length: {footer.FooterLength.ToString() ?? unknown} bytes");
         logger.AddInfo($"  CRC check: {crcStatus}");
         logger.AddInfo($"    Stored CRC: {storedCrc}");
@@ -222,7 +223,7 @@ public class EslockProcessor(ProcessingConfig config)
             if (isPartial)
             {
                 return DecryptionConfig.CreatePartialEncrypt(
-                    originalFileLength: footer?.StartFooterPosition ?? fileLength,
+                    originalFileLength: footer?.FooterOffset ?? fileLength,
                     key: key,
                     encryptedBlockSize: Config.RawDecryptConfig.EncryptedBlockSize
                         ?? footer?.EncryptedBlockSize ?? encryptedBlockDefault,
@@ -232,7 +233,7 @@ public class EslockProcessor(ProcessingConfig config)
             else
             {
                 return DecryptionConfig.CreateFullEncrypt(
-                    originalFileLength: footer?.StartFooterPosition ?? fileLength,
+                    originalFileLength: footer?.FooterOffset ?? fileLength,
                     key: key,
                     isFileTruncated: footer is null
                 );
@@ -244,7 +245,7 @@ public class EslockProcessor(ProcessingConfig config)
             if (isPartial)
             {
                 return DecryptionConfig.CreatePartialEncrypt(
-                    originalFileLength: footer.StartFooterPosition,
+                    originalFileLength: footer.FooterOffset,
                     key: key,
                     encryptedBlockSize: footer.EncryptedBlockSize ?? encryptedBlockDefault,
                     isFileTruncated: false
@@ -253,7 +254,7 @@ public class EslockProcessor(ProcessingConfig config)
             else
             {
                 return DecryptionConfig.CreateFullEncrypt(
-                    originalFileLength: footer.StartFooterPosition,
+                    originalFileLength: footer.FooterOffset,
                     key: key,
                     isFileTruncated: false
                 );

@@ -2,7 +2,7 @@ namespace ESLockDecryptor.Models;
 
 public record EslockFooter
 {
-    public required long StartFooterPosition;
+    public required long FooterOffset;
     public required bool IsParsedSuccessfully;
     public byte[] RawData = [];
     public bool? IsPartialEncryption;

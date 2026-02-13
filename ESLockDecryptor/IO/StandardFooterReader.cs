@@ -35,30 +35,30 @@ public class StandardFooterReader : IFooterReader
 
         var key = footer[^29..^13];
 
-        int currentPos = 0;
-        bool isPartialEncryption = footer[currentPos++] != 0xFF;
+        int pos = 0; // Current position
+        bool isPartialEncryption = footer[pos++] != 0xFF;
         
         int? encryptedBlockSize = null;
 
         if (isPartialEncryption)
         {
-            encryptedBlockSize = BinaryPrimitives.ReadInt32BigEndian(footer[currentPos..(currentPos + 4)]);
-            currentPos += 4;
+            encryptedBlockSize = BinaryPrimitives.ReadInt32BigEndian(footer[pos..(pos + 4)]);
+            pos += 4;
         }
 
-        int? originalNameLength = footer[currentPos++];
+        int? originalNameLength = footer[pos++];
         ReadOnlySpan<byte> encryptedOriginalName;
 
         if (originalNameLength != 255)
         {
             int normalizedNameLen = (((int)originalNameLength - 1 >> 4) + 1) << 4;
-            if (currentPos + normalizedNameLen > footer.Length)
+            if (pos + normalizedNameLen > footer.Length)
             {
                 throw new Exception("The encrypted name length is out of range of the footer. "
                     + "Try using the '--heuristic' option.");
             }
-            encryptedOriginalName = footer[currentPos..(currentPos + normalizedNameLen)];
-            // currentPos += normalizedNameLen;
+            encryptedOriginalName = footer[pos..(pos + normalizedNameLen)];
+            // pos += normalizedNameLen;
         }
         else
         {
@@ -68,7 +68,7 @@ public class StandardFooterReader : IFooterReader
 
         return new EslockFooter
         {
-            StartFooterPosition = fileLength - footerLength,
+            FooterOffset = fileLength - footerLength,
             IsParsedSuccessfully = true,
             RawData = footer.ToArray(),
             IsPartialEncryption = isPartialEncryption,
@@ -82,7 +82,7 @@ public class StandardFooterReader : IFooterReader
         };
     }
 
-    private ReadOnlySpan<byte> ReadFileTail(string filePath, int length)
+    private static ReadOnlySpan<byte> ReadFileTail(string filePath, int length)
     {
         var buffer = new byte[length];
         
