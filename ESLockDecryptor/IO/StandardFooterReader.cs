@@ -9,7 +9,7 @@ public class StandardFooterReader : IFooterReader
     public EslockFooter ReadFooter(string filePath)
     {
         const int maxFooterSize = 1024;
-        const int minFooterSize = 29;
+        const int minFooterSize = 32;
 
         long fileLength = new FileInfo(filePath).Length;
 
@@ -42,8 +42,7 @@ public class StandardFooterReader : IFooterReader
 
         if (isPartialEncryption)
         {
-            encryptedBlockSize = BinaryPrimitives.ReadInt32BigEndian(footer[pos..(pos + 4)]);
-            pos += 4;
+            encryptedBlockSize = BinaryPrimitives.ReadInt32BigEndian(footer[pos..(pos += 4)]);
         }
 
         int? originalNameLength = footer[pos++];
@@ -57,8 +56,7 @@ public class StandardFooterReader : IFooterReader
                 throw new Exception("The encrypted name length is out of range of the footer. "
                     + "Try using the '--heuristic' option.");
             }
-            encryptedOriginalName = footer[pos..(pos + normalizedNameLen)];
-            // pos += normalizedNameLen;
+            encryptedOriginalName = footer[pos..(pos += normalizedNameLen)];
         }
         else
         {

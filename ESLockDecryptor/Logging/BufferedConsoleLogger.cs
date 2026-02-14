@@ -16,8 +16,8 @@ public class BufferedConsoleLogger : ILogger
                 if (color is not null)
                     Console.ForegroundColor = (ConsoleColor)color;
                 Console.WriteLine(text);
+                Console.ResetColor();
             }
-            Console.ResetColor();
         }
     }
 

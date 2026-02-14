@@ -183,6 +183,7 @@ rootCommand.Validators.Add(result =>
 rootCommand.SetAction(parseResult =>
 {
     bool isReadOnlyEnabled = parseResult.GetValue(readOnlyOption);
+    string? password = parseResult.GetValue(passwordOption);
     string? key = parseResult.GetValue(keyOption);
 
     string exeDirectory = Path.GetDirectoryName(Environment.ProcessPath) ?? Directory.GetCurrentDirectory();
@@ -210,8 +211,8 @@ rootCommand.SetAction(parseResult =>
         Verbose: parseResult.GetValue(verboseOption),
         Overwrite: parseResult.GetValue(overwriteOption),
         ReadOnly: parseResult.GetValue(readOnlyOption),
-        IgnoreCrc: parseResult.GetValue(ignoreCrcOption),
-        Password: parseResult.GetValue(passwordOption),
+        IgnoreCrc: key is not null || password is not null || parseResult.GetValue(ignoreCrcOption),
+        Password: password,
         Key: key is null ? null : Convert.FromHexString(key),
         Heuristic: parseResult.GetValue(heuristicOption),
         RawDecryptConfig: parseResult.GetValue(rawDecryptOption)

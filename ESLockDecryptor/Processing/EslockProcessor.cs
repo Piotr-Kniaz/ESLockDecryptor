@@ -185,6 +185,7 @@ public class EslockProcessor(ProcessingConfig config)
         string crcStatus = footer.IsCrcValid ? "[MATCH]" : "[MISMATCH]";
         string storedCrc = footer.StoredCrc is not null ? string.Format("{0:X8}", footer.StoredCrc) : unknown;
         string calculatedCrc = footer.CalculatedCrc is not null ? string.Format("{0:X8}", footer.CalculatedCrc) : unknown;
+        string footerLength = footer.FooterLength is not null ? footer.FooterLength.ToString() ?? unknown : unknown;
         string type = footer.IsPartialEncryption switch
         {
             null => unknown,
@@ -196,7 +197,7 @@ public class EslockProcessor(ProcessingConfig config)
         logger.AddInfo($"  File size: {fileLength} bytes");
         logger.AddInfo($"  Footer offset: {footer.FooterOffset} bytes");
         logger.AddInfo("Metadata:");
-        logger.AddInfo($"  Footer length: {footer.FooterLength.ToString() ?? unknown} bytes");
+        logger.AddInfo($"  Footer length: {footerLength} bytes");
         logger.AddInfo($"  CRC check: {crcStatus}");
         logger.AddInfo($"    Stored CRC: {storedCrc}");
         logger.AddInfo($"    Calculated CRC: {calculatedCrc}");
@@ -208,8 +209,8 @@ public class EslockProcessor(ProcessingConfig config)
     {
         long fileLength = file.Length;
         byte[] key = GetKey(footer, logger);
-        bool isPartialDefault = fileLength > 2000; // TODO: Research!
-        int encryptedBlockDefault = 1024; // TODO: Research!
+        bool isPartialDefault = true;     // most cases
+        int encryptedBlockDefault = 1024; // most cases
         bool? isPartialProvided = Config.RawDecryptConfig?.Mode switch
         {
             RawDecryptMode.Partial => true,
