@@ -16,18 +16,20 @@ public class HeuristicFooterReader : IFooterReader
     public EslockFooter ReadFooter(string filePath)
     {
         long fileLength = new FileInfo(filePath).Length;
-
         int bufferSize = (int)Math.Min(fileLength, SearchWindiwSize);
-
         var buffer = ReadFileTail(filePath, bufferSize);
 
         var candidates = FindCandidatesBySignature(buffer, fileLength);
-
         candidates.AddRange(FindCandidatesByStructure(buffer, fileLength));
 
-        if (candidates.Count > 0) return candidates[0];
+        var footer = candidates
+            .OrderByDescending(c => c.IsCrcValid)
+            .ThenByDescending(c => c.IsParsedSuccessfully)
+            .ThenByDescending(c => c.FooterOffset)
+            .FirstOrDefault();
 
-        throw new InvalidDataException("Footer not found. Extract key from the valid file and try '--raw-decrypt' option.");
+        return footer
+            ?? throw new InvalidDataException("Footer not found. Extract key from the valid file and try '--raw-decrypt' option.");
     }
 
     private static List<EslockFooter> FindCandidatesBySignature(ReadOnlySpan<byte> buffer, long totalFileLength)
