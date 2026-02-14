@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
-    <Version>1.2</Version>
+    <Version>2.0</Version>
 
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
@@ -20,7 +20,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.IO.Hashing" Version="10.0.0" />
+    <PackageReference Include="System.CommandLine" Version="2.0.3" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.3" />
   </ItemGroup>
 
 </Project>
