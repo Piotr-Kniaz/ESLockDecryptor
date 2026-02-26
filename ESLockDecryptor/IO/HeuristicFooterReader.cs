@@ -126,10 +126,9 @@ public class HeuristicFooterReader : IFooterReader
             }
 
             originalNameLength = buffer[pos++];
-            if (originalNameLength != 255)
+            if (originalNameLength is not null && originalNameLength != 255)
             {
-                int normalizedNameLen = (((int)originalNameLength - 1 >> 4) + 1) << 4;
-                encryptedOriginalName = buffer[pos..(pos += normalizedNameLen)];
+                encryptedOriginalName = buffer[pos..(pos += (int)originalNameLength)];
             }
 
             isStructureValid = buffer[pos++] == 0x10;

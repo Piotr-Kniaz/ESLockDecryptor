@@ -89,7 +89,7 @@ public class EslockProcessor(ProcessingConfig config)
             footer = ReadFooter(inputFile);
             decryptConfig = GetDecryptionConfig(inputFile, footer, logger);
             string? originalFileName = footer?.EncryptedOriginalName is not null && footer.OriginalNameLength is not null
-                ? Decryptor.DecryptFileName(footer.EncryptedOriginalName, decryptConfig.Key, (int)footer.OriginalNameLength)
+                ? Decryptor.DecryptFileName(footer.EncryptedOriginalName, decryptConfig.Key)
                 : null;
             if (footer is not null && Config.Verbose)
             {
