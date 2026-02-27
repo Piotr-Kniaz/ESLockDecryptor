@@ -74,12 +74,6 @@ public class EslockProcessor(ProcessingConfig config)
                 decryptConfig = GetDecryptionConfig(inputFile, null, logger);
                 outputPath = Path.Combine(outputDirectory.FullName, Path.GetFileNameWithoutExtension(inputFile.Name));
 
-                if (File.Exists(outputPath) && !Config.Overwrite)
-                {
-                    throw new Exception($"File {Path.GetFileNameWithoutExtension(outputPath)} exists in the output directory. "
-                        + "Use '--overwrite' to replace existing file.");
-                }
-
                 DecryptFile(inputFile.FullName, outputPath, decryptConfig, logger);
                 logger.AddSuccess($"File decrypted: {inputFile.Name}");
                 Stats.IncrementFilesDecrypted();
@@ -108,12 +102,6 @@ public class EslockProcessor(ProcessingConfig config)
             outputPath = Path.Combine(
                 outputDirectory.FullName, 
                 originalFileName ?? Path.GetFileNameWithoutExtension(inputFile.Name));
-
-            if (File.Exists(outputPath) && !Config.Overwrite)
-            {
-                throw new Exception($"File {Path.GetFileNameWithoutExtension(outputPath)} exists in the output directory. "
-                    + "Use '--overwrite' to replace existing file.");
-            }
 
             DecryptFile(inputFile.FullName, outputPath, decryptConfig, logger);
             logger.AddSuccess($"File decrypted: {inputFile.Name}");
@@ -179,6 +167,7 @@ public class EslockProcessor(ProcessingConfig config)
         IFooterReader footerReader = Config.Heuristic ? new HeuristicFooterReader() : new StandardFooterReader();
         return footerReader.ReadFooter(file.FullName);
     }
+
     private static void LogMetadata(long fileLength, EslockFooter footer, BufferedConsoleLogger logger)
     {
         string unknown = "unknown";
@@ -207,10 +196,11 @@ public class EslockProcessor(ProcessingConfig config)
 
     private DecryptionConfig GetDecryptionConfig(FileInfo file, EslockFooter? footer, BufferedConsoleLogger logger)
     {
+        const bool isPartialDefault = true;     // most cases
+        const int encryptedBlockDefault = 1024; // most cases
+
         long fileLength = file.Length;
         byte[] key = GetKey(footer, logger);
-        bool isPartialDefault = true;     // most cases
-        int encryptedBlockDefault = 1024; // most cases
         bool? isPartialProvided = Config.RawDecryptConfig?.Mode switch
         {
             RawDecryptMode.Partial => true,
@@ -287,10 +277,23 @@ public class EslockProcessor(ProcessingConfig config)
     private void DecryptFile(string inputPath, string outputPath, DecryptionConfig config, BufferedConsoleLogger logger)
     {
         using var inputFileStream = new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        using var outputFileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write);
+        try
+        {
+            FileMode mode = Config.Overwrite ? FileMode.Create : FileMode.CreateNew;
+            using var outputFileStream = new FileStream(outputPath, mode, FileAccess.Write, FileShare.None);
 
-        logger.AddInfo($"Output path: {outputPath}");
-        Decryptor.DecryptStream(inputFileStream, outputFileStream, config);
+            logger.AddInfo($"Output path: {outputPath}");
+            Decryptor.DecryptStream(inputFileStream, outputFileStream, config);
+        }
+        catch (IOException) when (!Config.Overwrite && File.Exists(outputPath))
+        {
+            throw new Exception($"File {Path.GetFileName(outputPath)} exists in the output directory. "
+                + "Use '--overwrite' to replace existing file.");
+        }
+        catch (IOException ex)
+        {
+            throw new Exception($"Failed to access output file. Details: {ex.Message}");
+        }
     }
 
     private static void PrintInfo()
