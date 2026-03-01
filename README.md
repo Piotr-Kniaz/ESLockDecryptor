@@ -9,7 +9,7 @@
 > [!WARNING]
 > **FOR LEGAL USE ONLY!** This software is designed for **educational purposes, security research, and lawful digital forensics use**. It is intended to help users recover their own data or to assist authorized professionals in analyzing artifacts/evidence.
 > 
-> The author is not responsible for any illegal use of this tool. Usage of this software for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state, and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program.
+> The author is not responsible for any illegal use of this tool. Usage of this software for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state, and federal laws. Developer assume no liability and are not responsible for any misuse or damage caused by this program.
 
 <div align="center">
 
@@ -32,7 +32,7 @@
 
 ## Downloads & Supported Platforms
 
-You can download the latest pre-built binaries for your system from the **[Releases](../../releases)** page.
+You can download the latest pre-built binaries for your system from the **[Releases](https://github.com/Piotr-Kniaz/ESLockDecryptor/releases)** page.
 
 <div align="center">
 
@@ -141,6 +141,16 @@ If you prefer to build the application yourself, ensure you have the **.NET 10 S
 ## Issues & Contributing
 
 **Contributions are welcome!** If you found a bug, have a feature request, or want to improve the code, feel free to help.
+
+## Support ESLockDecryptor
+
+ESLockDecryptor is a completely free and open-source project. If you find it helpful, please consider supporting its developer.
+
+<div align="center">
+
+[![Donate](https://img.shields.io/badge/Donate-fafafa?style=for-the-badge&logo=githubsponsors)](DONATE.md)
+
+</div>
 
 ## License
 

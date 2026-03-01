@@ -48,15 +48,14 @@ public class StandardFooterReader : IFooterReader
         int? originalNameLength = footer[pos++];
         ReadOnlySpan<byte> encryptedOriginalName;
 
-        if (originalNameLength != 255)
+        if (originalNameLength is not null && originalNameLength != 255)
         {
-            int normalizedNameLen = (((int)originalNameLength - 1 >> 4) + 1) << 4;
-            if (pos + normalizedNameLen > footer.Length)
+            if (pos + originalNameLength > footer.Length)
             {
                 throw new Exception("The encrypted name length is out of range of the footer. "
                     + "Try using the '--heuristic' option.");
             }
-            encryptedOriginalName = footer[pos..(pos += normalizedNameLen)];
+            encryptedOriginalName = footer[pos..(pos += (int)originalNameLength)];
         }
         else
         {

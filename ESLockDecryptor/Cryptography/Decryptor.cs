@@ -57,14 +57,20 @@ public static class Decryptor
         }
     }
 
-    public static string DecryptFileName(byte[] encryptedName, byte[] key, int nameLength)
+    public static string DecryptFileName(byte[] encryptedName, byte[] key)
     {
         using var aes = CreateAes(key);
         using var decryptor = aes.CreateDecryptor();
 
-        var decryptedNameBytes = decryptor.TransformFinalBlock(encryptedName, 0, encryptedName.Length);
+        int nameLength = encryptedName.Length;
+        int normalizedLength = ((nameLength - 1 >> 4) + 1) << 4;
 
-        return Encoding.UTF8.GetString(decryptedNameBytes, 0, nameLength);
+        byte[] buffer = new byte[normalizedLength];
+        Array.Copy(encryptedName, buffer, nameLength);
+
+        var decrypted = decryptor.TransformFinalBlock(buffer, 0, normalizedLength);
+
+        return Encoding.UTF8.GetString(decrypted, 0, nameLength);
     }
 
     private static Aes CreateAes(byte[] key)
