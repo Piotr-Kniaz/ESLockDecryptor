@@ -11,7 +11,7 @@ public record EslockFooter
     public byte[]? EncryptedOriginalName;
     public uint? StoredCrc;
     public uint? CalculatedCrc;
-    public bool IsCrcValid { get => StoredCrc is not null && StoredCrc == CalculatedCrc; }
+    public bool IsCrcValid => StoredCrc is not null && StoredCrc == CalculatedCrc;
     public byte[]? Key = [];
     public int? FooterLength;
 }

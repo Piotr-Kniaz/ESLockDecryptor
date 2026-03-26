@@ -201,12 +201,7 @@ public class EslockProcessor(ProcessingConfig config)
 
         long fileLength = file.Length;
         byte[] key = GetKey(footer, logger);
-        bool? isPartialProvided = Config.RawDecryptConfig?.Mode switch
-        {
-            RawDecryptMode.Partial => true,
-            RawDecryptMode.Full => false,
-            _ => null
-        };
+        bool? isPartialProvided = Config.RawDecryptConfig?.Mode.IsPartialProvided;
 
         if (Config.RawDecryptConfig is not null)
         {
