@@ -78,15 +78,9 @@ rawDecryptOption.CustomParser = result =>
 
     var parts = value.Split(':', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    RawDecryptMode? mode = parts[0].ToLower() switch
-    {
-        "auto" => RawDecryptMode.Auto,
-        "full" => RawDecryptMode.Full,
-        "partial" => RawDecryptMode.Partial,
-        _ => null
-    };
+    var mode = RawDecryptMode.FromName(parts[0]);
 
-    if (mode is null)
+    if (mode == RawDecryptMode.Undefined)
     {
         result.AddError("Invalid value for '--raw-decrypt'. Allowed values are: auto, full, partial[:size].");
         return null;
@@ -106,10 +100,10 @@ rawDecryptOption.CustomParser = result =>
             return null;
         }
 
-        return new RawDecryptConfig((RawDecryptMode)mode, size);
+        return new(mode, size);
     }
 
-    return new RawDecryptConfig((RawDecryptMode)mode);
+    return new(mode);
 };
 
 #endregion
