@@ -1,4 +1,4 @@
-namespace ESLockDecryptor.Configuration;
+namespace ESLockDecryptor.Core.Configuration;
 
 public record DecryptionConfig
 {

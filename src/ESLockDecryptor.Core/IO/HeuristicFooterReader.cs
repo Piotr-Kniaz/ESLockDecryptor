@@ -1,8 +1,8 @@
 using System.Buffers.Binary;
 using System.IO.Hashing;
-using ESLockDecryptor.Models;
+using ESLockDecryptor.Core.Models;
 
-namespace ESLockDecryptor.IO;
+namespace ESLockDecryptor.Core.IO;
 
 public class HeuristicFooterReader : IFooterReader
 {

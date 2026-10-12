@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace ESLockDecryptor.Cryptography;
+namespace ESLockDecryptor.Core.Cryptography;
 
 public static class KeyDerivator
 {

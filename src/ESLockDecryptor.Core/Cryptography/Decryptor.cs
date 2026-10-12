@@ -1,9 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
-using ESLockDecryptor.Configuration;
-using ESLockDecryptor.Extensions;
+using ESLockDecryptor.Core.Configuration;
+using ESLockDecryptor.Core.Extensions;
 
-namespace ESLockDecryptor.Cryptography;
+namespace ESLockDecryptor.Core.Cryptography;
 
 public static class Decryptor
 {

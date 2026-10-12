@@ -1,4 +1,4 @@
-namespace ESLockDecryptor.Models;
+namespace ESLockDecryptor.Core.Models;
 
 public record EslockFooter
 {

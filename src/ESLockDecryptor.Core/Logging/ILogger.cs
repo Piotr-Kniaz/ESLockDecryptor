@@ -1,4 +1,4 @@
-namespace ESLockDecryptor.Logging;
+namespace ESLockDecryptor.Core.Logging;
 
 public interface ILogger
 {

@@ -1,4 +1,4 @@
-namespace ESLockDecryptor.Extensions;
+namespace ESLockDecryptor.Core.Extensions;
 
 public static class StreamExtensions
 {

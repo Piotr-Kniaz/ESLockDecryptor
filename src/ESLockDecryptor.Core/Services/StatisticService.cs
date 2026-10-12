@@ -1,4 +1,4 @@
-namespace ESLockDecryptor.Services;
+namespace ESLockDecryptor.Core.Services;
 
 public class StatisticService
 {

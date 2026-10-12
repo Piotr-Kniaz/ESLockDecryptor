@@ -1,6 +1,6 @@
-using ESLockDecryptor.Models;
+using ESLockDecryptor.Core.Models;
 
-namespace ESLockDecryptor.IO;
+namespace ESLockDecryptor.Core.IO;
 
 public interface IFooterReader
 {

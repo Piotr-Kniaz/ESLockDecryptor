@@ -1,6 +1,7 @@
 ﻿using System.CommandLine;
-using ESLockDecryptor.Processing;
-using ESLockDecryptor.Configuration;
+using ESLockDecryptor.Cli.Logging;
+using ESLockDecryptor.Core.Processing;
+using ESLockDecryptor.Core.Configuration;
 
 const string description = "ESLockDecryptor is a forensic tool for recovering ES File Explorer encrypted files (.eslock)";
 
@@ -212,8 +213,25 @@ rootCommand.SetAction(parseResult =>
         RawDecryptConfig: parseResult.GetValue(rawDecryptOption)
     );
 
-    var processor = new EslockProcessor(config);
-    processor.Execute();
+    var logger = new BufferedConsoleLogger();
+    try
+    {
+        logger.AddInfo("================================================================================");
+        logger.AddInfo("                                 ESLockDecryptor");
+        logger.AddInfo("================================================================================");
+        logger.AddInfo("     Forensic tool for recovering ES File Explorer encrypted files (.eslock)");
+        logger.AddInfo("                             ! FOR LEGAL USE ONLY !");
+        logger.AddInfo($"              Version {typeof(Program).Assembly.GetName().Version?.ToString(2) ?? "---"} | (C) 2025-2026 Piotr Kniaz | MIT License");
+        logger.AddInfo("================================================================================");
+
+        var processor = new EslockProcessor(config, logger);
+        processor.Execute();
+    }
+    finally
+    {
+        logger.Flush();
+    }
+
     return 0;
 });
 
