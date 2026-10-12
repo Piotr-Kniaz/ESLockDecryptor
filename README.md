@@ -1,10 +1,14 @@
 # ESLockDecryptor
 
-[![Packet Storm](https://img.shields.io/badge/Packet%20Storm-Featured-000000?style=flat)](https://packetstorm.news/files/id/213316/) [![CXSecurity](https://img.shields.io/badge/CXSecurity-WLB--2025120027-black?style=flat)](https://cxsecurity.com/issue/WLB-2025120027)
+[![Kitploit](https://img.shields.io/badge/Kitploit-Featured-000000?style=flat)](https://kitploit.com/en/tools/github/piotr-kniaz/eslockdecryptor) [![Packet Storm](https://img.shields.io/badge/Packet%20Storm-Featured-000000?style=flat)](https://packetstorm.news/files/id/216467) [![CXSecurity](https://img.shields.io/badge/CXSecurity-WLB--2025120027-black?style=flat)](https://cxsecurity.com/issue/WLB-2025120027)
+
+[![Forensic Focus](https://img.shields.io/badge/Forensic%20Focus-Topic-000000?style=flat)](https://www.forensicfocus.com/forums/general/release-eslockdecryptor-open-source-tool-for-decrypt-files-locked-by-es-file-explorer-eslock/#post-6608326)
 
 
 
-**ESLockDecryptor** is a command-line tool designed to recover and decrypt files encrypted by ES File Explorer (files with the `.eslock` extension). It supports processing both individual files and entire directories.
+**ESLockDecryptor** is a command-line tool designed to recover and decrypt files encrypted by ES File Explorer (files with the `.eslock` extension). It demonstrates the real-world impact of **CWE-327 (Use of a Broken or Risky Cryptographic Algorithm)** present in the ES File Explorer application. Due to fundamental flaws in how ES File Explorer implements encryption for .eslock files, this utility can successfully bypass the protection and recover the original data.
+
+ESLockDecryptor allows you to process individual files, directories, and try to restore partially damaged files.
 
 > [!WARNING]
 > **FOR LEGAL USE ONLY!** This software is designed for **educational purposes, security research, and lawful digital forensics use**. It is intended to help users recover their own data or to assist authorized professionals in analyzing artifacts/evidence.
