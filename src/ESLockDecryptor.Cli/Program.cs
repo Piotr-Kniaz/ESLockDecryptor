@@ -1,7 +1,8 @@
 ﻿using System.CommandLine;
-using ESLockDecryptor.Cli.Logging;
-using ESLockDecryptor.Core.Processing;
+using ESLockDecryptor.Application.Processing;
+using ESLockDecryptor.Application.Configuration;
 using ESLockDecryptor.Core.Configuration;
+using ESLockDecryptor.Cli.Reporting;
 
 const string description = "ESLockDecryptor is a forensic tool for recovering ES File Explorer encrypted files (.eslock)";
 
@@ -213,24 +214,17 @@ rootCommand.SetAction(parseResult =>
         RawDecryptConfig: parseResult.GetValue(rawDecryptOption)
     );
 
-    var logger = new BufferedConsoleLogger();
-    try
-    {
-        logger.AddInfo("================================================================================");
-        logger.AddInfo("                                 ESLockDecryptor");
-        logger.AddInfo("================================================================================");
-        logger.AddInfo("     Forensic tool for recovering ES File Explorer encrypted files (.eslock)");
-        logger.AddInfo("                             ! FOR LEGAL USE ONLY !");
-        logger.AddInfo($"              Version {typeof(Program).Assembly.GetName().Version?.ToString(2) ?? "---"} | (C) 2025-2026 Piotr Kniaz | MIT License");
-        logger.AddInfo("================================================================================");
+    var reporter = new ConsoleProcessingReporter();
+    reporter.Info("================================================================================");
+    reporter.Info("                                 ESLockDecryptor");
+    reporter.Info("================================================================================");
+    reporter.Info("     Forensic tool for recovering ES File Explorer encrypted files (.eslock)");
+    reporter.Info("                             ! FOR LEGAL USE ONLY !");
+    reporter.Info($"              Version {typeof(Program).Assembly.GetName().Version?.ToString(2) ?? "---"} | (C) 2025-2026 Piotr Kniaz | MIT License");
+    reporter.Info("================================================================================");
 
-        var processor = new EslockProcessor(config, logger);
-        processor.Execute();
-    }
-    finally
-    {
-        logger.Flush();
-    }
+    var processor = new EslockProcessor(config, reporter);
+    processor.Execute();
 
     return 0;
 });

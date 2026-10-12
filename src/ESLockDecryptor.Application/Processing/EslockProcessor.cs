@@ -1,13 +1,14 @@
+using ESLockDecryptor.Application.Configuration;
+using ESLockDecryptor.Application.Reporting;
 using ESLockDecryptor.Core.Configuration;
 using ESLockDecryptor.Core.Models;
 using ESLockDecryptor.Core.IO;
 using ESLockDecryptor.Core.Cryptography;
-using ESLockDecryptor.Core.Logging;
 using ESLockDecryptor.Core.Services;
 
-namespace ESLockDecryptor.Core.Processing;
+namespace ESLockDecryptor.Application.Processing;
 
-public class EslockProcessor(ProcessingConfig config, ILogger? logger = null)
+public class EslockProcessor(ProcessingConfig config, IProcessingReporter? reporter = null)
 {
     public void Execute()
     {
@@ -22,19 +23,20 @@ public class EslockProcessor(ProcessingConfig config, ILogger? logger = null)
                 break;
         }
 
-        Logger?.AddInfo("\n================================================================================");
-        Logger?.AddInfo("Processing complete.");
-        Logger?.AddInfo($"  Files processed:  {Stats.FilesProcessed}");
-        Logger?.AddInfo($"  Files decrypted:  {Stats.FilesDecrypted}");
-        Logger?.AddInfo($"  Files skipped:    {Stats.FilesSkipped}");
-        Logger?.AddInfo($"  Warnings:         {Stats.Warnings}");
-        Logger?.AddInfo($"  Errors:           {Stats.Errors}");
-        Logger?.AddInfo("================================================================================");
+        Reporter?.Info("\n================================================================================");
+        Reporter?.Info("Processing complete.");
+        Reporter?.Info($"  Files processed:  {Stats.FilesProcessed}");
+        Reporter?.Info($"  Files decrypted:  {Stats.FilesDecrypted}");
+        Reporter?.Info($"  Files skipped:    {Stats.FilesSkipped}");
+        Reporter?.Info($"  Warnings:         {Stats.Warnings}");
+        Reporter?.Info($"  Errors:           {Stats.Errors}");
+        Reporter?.Info("================================================================================");
     }
 
     private void ProcessingFile(FileInfo inputFile, DirectoryInfo? outputDirectory)
     {
-        Logger?.AddInfo($"\nProcessing file: {inputFile.FullName}");
+        using var report = Reporter?.BeginScope();
+        report?.Info($"\nProcessing file: {inputFile.FullName}");
         EslockFooter? footer;
 
         try
@@ -44,10 +46,10 @@ public class EslockProcessor(ProcessingConfig config, ILogger? logger = null)
                 footer = ReadFooter(inputFile);
                 if (footer is not null)
                 {
-                    LogMetadata(inputFile.Length, footer);
+                    LogMetadata(inputFile.Length, footer, report);
                     if (!footer.IsCrcValid)
                     {
-                        Logger?.AddWarning("CRC check failed. Metadata may be corrupted.");
+                        report?.Warning("CRC check failed. Metadata may be corrupted.");
                         Stats.IncrementWarnings();
                     }
                     Stats.IncrementFilesProcessed();
@@ -69,30 +71,30 @@ public class EslockProcessor(ProcessingConfig config, ILogger? logger = null)
             if (!Directory.Exists(outputPath))
             {
                 Directory.CreateDirectory(outputPath);
-                Logger?.AddInfo($"\nCreated output directory: {outputPath}");
+                report?.Info($"\nCreated output directory: {outputPath}");
             }
 
             if (Config.RawDecryptConfig is not null && !Config.Heuristic)
             {
-                decryptConfig = GetDecryptionConfig(inputFile, null);
+                decryptConfig = GetDecryptionConfig(inputFile, null, report);
                 outputPath = Path.Combine(outputDirectory.FullName, Path.GetFileNameWithoutExtension(inputFile.Name));
 
-                DecryptFile(inputFile.FullName, outputPath, decryptConfig);
-                Logger?.AddSuccess($"File decrypted: {inputFile.Name}");
+                DecryptFile(inputFile.FullName, outputPath, decryptConfig, report);
+                report?.Success($"File decrypted: {inputFile.Name}");
                 Stats.IncrementFilesDecrypted();
                 return;
             }
 
             footer = ReadFooter(inputFile);
-            decryptConfig = GetDecryptionConfig(inputFile, footer);
+            decryptConfig = GetDecryptionConfig(inputFile, footer, report);
             string? originalFileName = footer?.EncryptedOriginalName is not null && footer.OriginalNameLength is not null
                 ? Decryptor.DecryptFileName(footer.EncryptedOriginalName, decryptConfig.Key)
                 : null;
             if (footer is not null && Config.Verbose)
             {
-                LogMetadata(inputFile.Length, footer);
+                LogMetadata(inputFile.Length, footer, report);
                 if (originalFileName is not null)
-                    Logger?.AddInfo($"  Original file name: {originalFileName}");
+                    report?.Info($"  Original file name: {originalFileName}");
             }
             if (footer is not null && !footer.IsCrcValid)
             {
@@ -100,19 +102,19 @@ public class EslockProcessor(ProcessingConfig config, ILogger? logger = null)
                 {
                     throw new Exception("CRC check failed. Skipping file. Use '--ignore-crc' to bypass this check.");
                 }
-                Logger?.AddWarning("CRC check failed. Metadata may be corrupted.");
+                report?.Warning("CRC check failed. Metadata may be corrupted.");
             }
             outputPath = Path.Combine(
                 outputDirectory.FullName, 
                 originalFileName ?? Path.GetFileNameWithoutExtension(inputFile.Name));
 
-            DecryptFile(inputFile.FullName, outputPath, decryptConfig);
-            Logger?.AddSuccess($"File decrypted: {inputFile.Name}");
+            DecryptFile(inputFile.FullName, outputPath, decryptConfig, report);
+            report?.Success($"File decrypted: {inputFile.Name}");
             Stats.IncrementFilesDecrypted();
         }
         catch (Exception ex)
         {
-            Logger?.AddError(ex.Message);
+            report?.Error(ex.Message);
             Stats.IncrementErrors();
             Stats.IncrementFilesSkipped();
             return;
@@ -121,22 +123,22 @@ public class EslockProcessor(ProcessingConfig config, ILogger? logger = null)
 
     private void ProcessingDirectory(DirectoryInfo inputDirectory, DirectoryInfo? outputDirectory)
     {
-        Logger?.AddInfo($"\nProcessing directory: {Config.InputPath.FullName}");
+        Reporter?.Info($"\nProcessing directory: {Config.InputPath.FullName}");
 
         var eslockFiles = Directory.GetFiles(inputDirectory.FullName, "*.eslock", SearchOption.AllDirectories);
 
         if (eslockFiles.Length == 0)
         {
-            Logger?.AddInfo("  No .eslock files found.");
+            Reporter?.Info("  No .eslock files found.");
             return;
         }
 
-        Logger?.AddInfo($"  Found {eslockFiles.Length} file(s).");
+        Reporter?.Info($"  Found {eslockFiles.Length} file(s).");
 
         if (!Config.ReadOnly && outputDirectory is not null && !Directory.Exists(outputDirectory.FullName))
         {
             Directory.CreateDirectory(outputDirectory.FullName);
-            Logger?.AddInfo($"\nCreated output directory: {outputDirectory.FullName}");
+            Reporter?.Info($"\nCreated output directory: {outputDirectory.FullName}");
         }
 
         Parallel.ForEach(eslockFiles, eslockFile =>
@@ -164,10 +166,18 @@ public class EslockProcessor(ProcessingConfig config, ILogger? logger = null)
     private EslockFooter? ReadFooter(FileInfo file)
     {
         IFooterReader footerReader = Config.Heuristic ? new HeuristicFooterReader() : new StandardFooterReader();
-        return footerReader.ReadFooter(file.FullName);
+        using var fileStream = new FileStream(
+            file.FullName,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 1,
+            options: FileOptions.RandomAccess);
+
+        return footerReader.ReadFooter(fileStream);
     }
 
-    private void LogMetadata(long fileLength, EslockFooter footer)
+    private void LogMetadata(long fileLength, EslockFooter footer, IProcessingReportScope? report)
     {
         string unknown = "unknown";
         string crcStatus = footer.IsCrcValid ? "[MATCH]" : "[MISMATCH]";
@@ -182,26 +192,26 @@ public class EslockProcessor(ProcessingConfig config, ILogger? logger = null)
         };
         string key = footer.Key is not null ? Convert.ToHexString(footer.Key) : unknown;
 
-        if (Logger is null) return;
+        if (report is null) return;
 
-        Logger.AddInfo($"  File size: {fileLength} bytes");
-        Logger.AddInfo($"  Footer offset: {footer.FooterOffset} bytes");
-        Logger.AddInfo("Metadata:");
-        Logger.AddInfo($"  Footer length: {footerLength} bytes");
-        Logger.AddInfo($"  CRC check: {crcStatus}");
-        Logger.AddInfo($"    Stored CRC: {storedCrc}");
-        Logger.AddInfo($"    Calculated CRC: {calculatedCrc}");
-        Logger.AddInfo($"  Encryption: {type}");
-        Logger.AddInfo($"  Key: {key}");
+        report.Info($"  File size: {fileLength} bytes");
+        report.Info($"  Footer offset: {footer.FooterOffset} bytes");
+        report.Info("Metadata:");
+        report.Info($"  Footer length: {footerLength} bytes");
+        report.Info($"  CRC check: {crcStatus}");
+        report.Info($"    Stored CRC: {storedCrc}");
+        report.Info($"    Calculated CRC: {calculatedCrc}");
+        report.Info($"  Encryption: {type}");
+        report.Info($"  Key: {key}");
     }
 
-    private DecryptionConfig GetDecryptionConfig(FileInfo file, EslockFooter? footer)
+    private DecryptionConfig GetDecryptionConfig(FileInfo file, EslockFooter? footer, IProcessingReportScope? report)
     {
         const bool isPartialDefault = true;     // most cases
         const int encryptedBlockDefault = 1024; // most cases
 
         long fileLength = file.Length;
-        byte[] key = GetKey(footer);
+        byte[] key = GetKey(footer, report);
         bool? isPartialProvided = Config.RawDecryptConfig?.Mode.IsPartialProvided;
 
         if (Config.RawDecryptConfig is not null)
@@ -250,17 +260,17 @@ public class EslockProcessor(ProcessingConfig config, ILogger? logger = null)
         throw new InvalidDataException("Not enough data to decrypt.");
     }
 
-    private byte[] GetKey(EslockFooter? footer)
+    private byte[] GetKey(EslockFooter? footer, IProcessingReportScope? report)
     {
         if (Config.Key is not null)
         {
-            Logger?.AddInfo($"Using provided key: {Convert.ToHexString(Config.Key)}");
+            report?.Info($"Using provided key: {Convert.ToHexString(Config.Key)}");
             return Config.Key;
             
         }
         if (Config.Password is not null)
         {
-            Logger?.AddInfo($"Using provided password: {Config.Password}");
+            report?.Info($"Using provided password: {Config.Password}");
             return KeyDerivator.DeriveKeyFromPassword(Config.Password);
         }
         if (footer is not null && footer.Key?.Length == 16)
@@ -270,7 +280,7 @@ public class EslockProcessor(ProcessingConfig config, ILogger? logger = null)
         throw new Exception("Key for decryption not found or corrupted.");
     }
 
-    private void DecryptFile(string inputPath, string outputPath, DecryptionConfig config)
+    private void DecryptFile(string inputPath, string outputPath, DecryptionConfig config, IProcessingReportScope? report)
     {
         using var inputFileStream = new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read);
         try
@@ -278,7 +288,7 @@ public class EslockProcessor(ProcessingConfig config, ILogger? logger = null)
             FileMode mode = Config.Overwrite ? FileMode.Create : FileMode.CreateNew;
             using var outputFileStream = new FileStream(outputPath, mode, FileAccess.Write, FileShare.None);
 
-            Logger?.AddInfo($"Output path: {outputPath}");
+            report?.Info($"Output path: {outputPath}");
             Decryptor.DecryptStream(inputFileStream, outputFileStream, config);
         }
         catch (IOException) when (!Config.Overwrite && File.Exists(outputPath))
@@ -294,5 +304,5 @@ public class EslockProcessor(ProcessingConfig config, ILogger? logger = null)
 
     private StatisticService Stats { get; } = new();
     private ProcessingConfig Config { get; } = config;
-    private ILogger? Logger { get; } = logger;
+    private IProcessingReporter? Reporter { get; } = reporter;
 }

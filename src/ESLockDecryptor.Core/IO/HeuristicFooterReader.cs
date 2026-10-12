@@ -13,23 +13,34 @@ public class HeuristicFooterReader : IFooterReader
         [0x04, 0x00, 0x02, 0x08, 0x00]  // partial encryption - mp3 files
     ];
 
-    public EslockFooter ReadFooter(string filePath)
+    public EslockFooter ReadFooter(Stream inputStream)
     {
-        long fileLength = new FileInfo(filePath).Length;
-        int bufferSize = (int)Math.Min(fileLength, SearchWindiwSize);
-        var buffer = ReadFileTail(filePath, bufferSize);
+        if (!inputStream.CanSeek)
+            throw new NotSupportedException("Footer reading requires a seekable stream.");
 
-        var candidates = FindCandidatesBySignature(buffer, fileLength);
-        candidates.AddRange(FindCandidatesByStructure(buffer, fileLength));
+        long originalPosition = inputStream.Position;
+        try
+        {
+            long fileLength = inputStream.Length;
+            int bufferSize = (int)Math.Min(fileLength, SearchWindiwSize);
+            var buffer = ReadStreamTail(inputStream, bufferSize);
 
-        var footer = candidates
-            .OrderByDescending(c => c.IsCrcValid)
-            .ThenByDescending(c => c.IsParsedSuccessfully)
-            .ThenByDescending(c => c.FooterOffset)
-            .FirstOrDefault();
+            var candidates = FindCandidatesBySignature(buffer, fileLength);
+            candidates.AddRange(FindCandidatesByStructure(buffer, fileLength));
 
-        return footer
-            ?? throw new InvalidDataException("Footer not found. Extract key from the valid file and try '--raw-decrypt' option.");
+            var footer = candidates
+                .OrderByDescending(c => c.IsCrcValid)
+                .ThenByDescending(c => c.IsParsedSuccessfully)
+                .ThenByDescending(c => c.FooterOffset)
+                .FirstOrDefault();
+
+            return footer
+                ?? throw new InvalidDataException("Footer not found. Extract key from the valid file and try '--raw-decrypt' option.");
+        }
+        finally
+        {
+            inputStream.Position = originalPosition;
+        }
     }
 
     private static List<EslockFooter> FindCandidatesBySignature(ReadOnlySpan<byte> buffer, long totalFileLength)
@@ -167,20 +178,12 @@ public class HeuristicFooterReader : IFooterReader
         };
     }
 
-    private static ReadOnlySpan<byte> ReadFileTail(string filePath, int length)
+    private static ReadOnlySpan<byte> ReadStreamTail(Stream inputStream, int length)
     {
         var buffer = new byte[length];
-        
-        using var fileStream = new FileStream(
-            path: filePath,
-            mode: FileMode.Open,
-            access: FileAccess.Read,
-            share: FileShare.Read,
-            bufferSize: 1,
-            options: FileOptions.RandomAccess);
 
-        fileStream.Seek(-length, SeekOrigin.End);
-        fileStream.ReadExactly(buffer);
+        inputStream.Seek(-length, SeekOrigin.End);
+        inputStream.ReadExactly(buffer);
 
         return new ReadOnlySpan<byte>(buffer);
     }
