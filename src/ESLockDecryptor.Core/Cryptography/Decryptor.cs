@@ -5,10 +5,19 @@ using ESLockDecryptor.Core.Extensions;
 
 namespace ESLockDecryptor.Core.Cryptography;
 
-public static class Decryptor
+/// <summary>Provides low-level AES operations for ESLock content.</summary>
+public static class EslockDecryptor
 {
+    /// <summary>Decrypts encrypted content from one stream into another.</summary>
+    /// <param name="inputStream">The encrypted input stream.</param>
+    /// <param name="outputStream">The destination stream.</param>
+    /// <param name="config">The decryption configuration.</param>
     public static void DecryptStream(Stream inputStream, Stream outputStream, DecryptionConfig config)
     {
+        ArgumentNullException.ThrowIfNull(inputStream);
+        ArgumentNullException.ThrowIfNull(outputStream);
+        ArgumentNullException.ThrowIfNull(config);
+
         using var aes = CreateAes(config.Key);
 
         long originalFileLength = config.OriginalFileLength;
@@ -57,8 +66,15 @@ public static class Decryptor
         }
     }
 
+    /// <summary>Decrypts an encrypted original file name.</summary>
+    /// <param name="encryptedName">The encrypted name bytes.</param>
+    /// <param name="key">The 16-byte AES key.</param>
+    /// <returns>The decrypted UTF-8 file name.</returns>
     public static string DecryptFileName(byte[] encryptedName, byte[] key)
     {
+        ArgumentNullException.ThrowIfNull(encryptedName);
+        ArgumentNullException.ThrowIfNull(key);
+
         using var aes = CreateAes(key);
         using var decryptor = aes.CreateDecryptor();
 

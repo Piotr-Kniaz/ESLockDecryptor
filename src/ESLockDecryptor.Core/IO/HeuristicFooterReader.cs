@@ -4,7 +4,8 @@ using ESLockDecryptor.Core.Models;
 
 namespace ESLockDecryptor.Core.IO;
 
-public class HeuristicFooterReader : IFooterReader
+/// <summary>Searches the end of a damaged file for plausible footer metadata.</summary>
+public sealed class HeuristicFooterReader : IFooterReader
 {
     private const int SearchWindiwSize = 128 * 1024;
     private static readonly byte[][] Signatures = 
@@ -13,8 +14,13 @@ public class HeuristicFooterReader : IFooterReader
         [0x04, 0x00, 0x02, 0x08, 0x00]  // partial encryption - mp3 files
     ];
 
+    /// <summary>Searches for and reads a plausible footer while preserving the stream position.</summary>
+    /// <param name="inputStream">A seekable encrypted input stream.</param>
+    /// <returns>The best matching footer metadata.</returns>
     public EslockFooter ReadFooter(Stream inputStream)
     {
+        ArgumentNullException.ThrowIfNull(inputStream);
+
         if (!inputStream.CanSeek)
             throw new NotSupportedException("Footer reading requires a seekable stream.");
 

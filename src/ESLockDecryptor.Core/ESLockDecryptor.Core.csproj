@@ -4,10 +4,31 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <PackageId>ESLockDecryptor.Core</PackageId>
+    <Version>1.0.0</Version>
+    <Title>ESLockDecryptor Core</Title>
+    <Authors>Piotr Kniaz</Authors>
+    <Copyright>Copyright © 2025-2026 Piotr Kniaz</Copyright>
+    <Description>Core library for reading ESLock metadata and decrypting files encrypted by ES File Explorer.</Description>
+    <PackageReleaseNotes>Initial stable release of the reusable decryption core.</PackageReleaseNotes>
+    <PackageTags>eslock;decryption;cryptography;forensics</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Piotr-Kniaz/ESLockDecryptor</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Piotr-Kniaz/ESLockDecryptor</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.IO.Hashing" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

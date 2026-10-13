@@ -2,9 +2,8 @@ using ESLockDecryptor.Application.Configuration;
 using ESLockDecryptor.Application.Reporting;
 using ESLockDecryptor.Core.Configuration;
 using ESLockDecryptor.Core.Models;
-using ESLockDecryptor.Core.IO;
-using ESLockDecryptor.Core.Cryptography;
-using ESLockDecryptor.Core.Services;
+using ESLockDecryptor.Core.Processing;
+using ESLockDecryptor.Application.Services;
 
 namespace ESLockDecryptor.Application.Processing;
 
@@ -37,78 +36,70 @@ public class EslockProcessor(ProcessingConfig config, IProcessingReporter? repor
     {
         using var report = Reporter?.BeginScope();
         report?.Info($"\nProcessing file: {inputFile.FullName}");
-        EslockFooter? footer;
 
         try
         {
-            if (Config.ReadOnly)
-            {
-                footer = ReadFooter(inputFile);
-                if (footer is not null)
-                {
-                    LogMetadata(inputFile.Length, footer, report);
-                    if (!footer.IsCrcValid)
-                    {
-                        report?.Warning("CRC check failed. Metadata may be corrupted.");
-                        Stats.IncrementWarnings();
-                    }
-                    Stats.IncrementFilesProcessed();
-                    return;
-                }
-                else
-                {
-                    throw new Exception("Footer not found.");
-                }
-            }
-            else if (outputDirectory is null)
+            if (!Config.ReadOnly && outputDirectory is null)
             {
                 throw new Exception("Output directory must be specified.");
             }
 
-            string outputPath = outputDirectory.FullName;
-            DecryptionConfig decryptConfig;
-
-            if (!Directory.Exists(outputPath))
+            if (outputDirectory is not null && !Directory.Exists(outputDirectory.FullName))
             {
-                Directory.CreateDirectory(outputPath);
-                report?.Info($"\nCreated output directory: {outputPath}");
+                Directory.CreateDirectory(outputDirectory.FullName);
+                report?.Info($"\nCreated output directory: {outputDirectory.FullName}");
             }
 
-            if (Config.RawDecryptConfig is not null && !Config.Heuristic)
-            {
-                decryptConfig = GetDecryptionConfig(inputFile, null, report);
-                outputPath = Path.Combine(outputDirectory.FullName, Path.GetFileNameWithoutExtension(inputFile.Name));
+            using var inputStream = new FileStream(
+                inputFile.FullName,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                bufferSize: 1,
+                options: FileOptions.RandomAccess);
 
-                DecryptFile(inputFile.FullName, outputPath, decryptConfig, report);
-                report?.Success($"File decrypted: {inputFile.Name}");
-                Stats.IncrementFilesDecrypted();
+            var options = new DecryptionOptions
+            {
+                Key = Config.Key,
+                Password = Config.Password,
+                IgnoreCrc = Config.ReadOnly || Config.IgnoreCrc,
+                Heuristic = Config.Heuristic,
+                RawDecrypt = Config.RawDecryptConfig
+            };
+
+            if (Config.ReadOnly)
+            {
+                var footer = EslockFileDecryptor.ReadFooter(inputStream, Config.Heuristic);
+                LogMetadata(inputFile.Length, footer, report);
+                if (!footer.IsCrcValid)
+                {
+                    report?.Warning("CRC check failed. Metadata may be corrupted.");
+                    Stats.IncrementWarnings();
+                }
+                Stats.IncrementFilesProcessed();
                 return;
             }
 
-            footer = ReadFooter(inputFile);
-            decryptConfig = GetDecryptionConfig(inputFile, footer, report);
-            string? originalFileName = footer?.EncryptedOriginalName is not null && footer.OriginalNameLength is not null
-                ? Decryptor.DecryptFileName(footer.EncryptedOriginalName, decryptConfig.Key)
-                : null;
-            if (footer is not null && Config.Verbose)
-            {
-                LogMetadata(inputFile.Length, footer, report);
-                if (originalFileName is not null)
-                    report?.Info($"  Original file name: {originalFileName}");
-            }
-            if (footer is not null && !footer.IsCrcValid)
-            {
-                if (!Config.IgnoreCrc)
-                {
-                    throw new Exception("CRC check failed. Skipping file. Use '--ignore-crc' to bypass this check.");
-                }
-                report?.Warning("CRC check failed. Metadata may be corrupted.");
-            }
-            outputPath = Path.Combine(
-                outputDirectory.FullName, 
-                originalFileName ?? Path.GetFileNameWithoutExtension(inputFile.Name));
+            var plan = EslockFileDecryptor.Prepare(inputStream, options);
 
-            DecryptFile(inputFile.FullName, outputPath, decryptConfig, report);
+            if (plan.Footer is not null && (Config.ReadOnly || Config.Verbose))
+            {
+                LogMetadata(inputFile.Length, plan.Footer, report);
+                if (plan.OriginalFileName is not null)
+                    report?.Info($"  Original file name: {plan.OriginalFileName}");
+            }
+
+            if (plan.Footer is not null && !plan.Footer.IsCrcValid)
+            {
+                report?.Warning("CRC check failed. Metadata may be corrupted.");
+                Stats.IncrementWarnings();
+            }
+
+            string outputPath = Path.Combine(
+                outputDirectory!.FullName,
+                plan.OriginalFileName ?? Path.GetFileNameWithoutExtension(inputFile.Name));
+
+            DecryptFile(inputStream, outputPath, plan, report);
             report?.Success($"File decrypted: {inputFile.Name}");
             Stats.IncrementFilesDecrypted();
         }
@@ -163,20 +154,6 @@ public class EslockProcessor(ProcessingConfig config, IProcessingReporter? repor
         });
     }
 
-    private EslockFooter? ReadFooter(FileInfo file)
-    {
-        IFooterReader footerReader = Config.Heuristic ? new HeuristicFooterReader() : new StandardFooterReader();
-        using var fileStream = new FileStream(
-            file.FullName,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            bufferSize: 1,
-            options: FileOptions.RandomAccess);
-
-        return footerReader.ReadFooter(fileStream);
-    }
-
     private void LogMetadata(long fileLength, EslockFooter footer, IProcessingReportScope? report)
     {
         string unknown = "unknown";
@@ -205,91 +182,19 @@ public class EslockProcessor(ProcessingConfig config, IProcessingReporter? repor
         report.Info($"  Key: {key}");
     }
 
-    private DecryptionConfig GetDecryptionConfig(FileInfo file, EslockFooter? footer, IProcessingReportScope? report)
+    private void DecryptFile(
+        Stream inputStream,
+        string outputPath,
+        DecryptionPlan plan,
+        IProcessingReportScope? report)
     {
-        const bool isPartialDefault = true;     // most cases
-        const int encryptedBlockDefault = 1024; // most cases
-
-        long fileLength = file.Length;
-        byte[] key = GetKey(footer, report);
-        bool? isPartialProvided = Config.RawDecryptConfig?.Mode.IsPartialProvided;
-
-        if (Config.RawDecryptConfig is not null)
-        {
-            bool isPartial = isPartialProvided ?? footer?.IsPartialEncryption ?? isPartialDefault;
-            if (isPartial)
-            {
-                return DecryptionConfig.CreatePartialEncrypt(
-                    originalFileLength: footer?.FooterOffset ?? fileLength,
-                    key: key,
-                    encryptedBlockSize: Config.RawDecryptConfig.EncryptedBlockSize
-                        ?? footer?.EncryptedBlockSize ?? encryptedBlockDefault,
-                    isFileTruncated: footer is null
-                );
-            }
-            else
-            {
-                return DecryptionConfig.CreateFullEncrypt(
-                    originalFileLength: footer?.FooterOffset ?? fileLength,
-                    key: key,
-                    isFileTruncated: footer is null
-                );
-            }
-        }
-        if (footer is not null)
-        {
-            bool isPartial = footer.IsPartialEncryption ?? isPartialDefault;
-            if (isPartial)
-            {
-                return DecryptionConfig.CreatePartialEncrypt(
-                    originalFileLength: footer.FooterOffset,
-                    key: key,
-                    encryptedBlockSize: footer.EncryptedBlockSize ?? encryptedBlockDefault,
-                    isFileTruncated: false
-                );
-            }
-            else
-            {
-                return DecryptionConfig.CreateFullEncrypt(
-                    originalFileLength: footer.FooterOffset,
-                    key: key,
-                    isFileTruncated: false
-                );
-            }
-        }
-        throw new InvalidDataException("Not enough data to decrypt.");
-    }
-
-    private byte[] GetKey(EslockFooter? footer, IProcessingReportScope? report)
-    {
-        if (Config.Key is not null)
-        {
-            report?.Info($"Using provided key: {Convert.ToHexString(Config.Key)}");
-            return Config.Key;
-            
-        }
-        if (Config.Password is not null)
-        {
-            report?.Info($"Using provided password: {Config.Password}");
-            return KeyDerivator.DeriveKeyFromPassword(Config.Password);
-        }
-        if (footer is not null && footer.Key?.Length == 16)
-        {
-            return footer.Key;
-        }
-        throw new Exception("Key for decryption not found or corrupted.");
-    }
-
-    private void DecryptFile(string inputPath, string outputPath, DecryptionConfig config, IProcessingReportScope? report)
-    {
-        using var inputFileStream = new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read);
         try
         {
             FileMode mode = Config.Overwrite ? FileMode.Create : FileMode.CreateNew;
             using var outputFileStream = new FileStream(outputPath, mode, FileAccess.Write, FileShare.None);
 
             report?.Info($"Output path: {outputPath}");
-            Decryptor.DecryptStream(inputFileStream, outputFileStream, config);
+            EslockFileDecryptor.Decrypt(inputStream, outputFileStream, plan);
         }
         catch (IOException) when (!Config.Overwrite && File.Exists(outputPath))
         {

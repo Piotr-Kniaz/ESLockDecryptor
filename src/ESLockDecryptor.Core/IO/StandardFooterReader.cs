@@ -4,10 +4,16 @@ using ESLockDecryptor.Core.Models;
 
 namespace ESLockDecryptor.Core.IO;
 
-public class StandardFooterReader : IFooterReader
+/// <summary>Reads a footer using its standard location and declared length.</summary>
+public sealed class StandardFooterReader : IFooterReader
 {
+    /// <summary>Reads the standard footer while preserving the stream position.</summary>
+    /// <param name="inputStream">A seekable encrypted input stream.</param>
+    /// <returns>The parsed footer metadata.</returns>
     public EslockFooter ReadFooter(Stream inputStream)
     {
+        ArgumentNullException.ThrowIfNull(inputStream);
+
         const int maxFooterSize = 1024;
         const int minFooterSize = 32;
 
