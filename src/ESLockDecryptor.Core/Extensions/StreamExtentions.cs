@@ -1,6 +1,6 @@
-namespace ESLockDecryptor.Extensions;
+namespace ESLockDecryptor.Core.Extensions;
 
-public static class StreamExtensions
+internal static class StreamExtensions
 {
     public static void CopyTo(this Stream source, Stream destination, long count)
     {

@@ -1,6 +1,8 @@
 ﻿using System.CommandLine;
-using ESLockDecryptor.Processing;
-using ESLockDecryptor.Configuration;
+using ESLockDecryptor.Application.Processing;
+using ESLockDecryptor.Application.Configuration;
+using ESLockDecryptor.Core.Configuration;
+using ESLockDecryptor.Cli.Reporting;
 
 const string description = "ESLockDecryptor is a forensic tool for recovering ES File Explorer encrypted files (.eslock)";
 
@@ -78,15 +80,9 @@ rawDecryptOption.CustomParser = result =>
 
     var parts = value.Split(':', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    RawDecryptMode? mode = parts[0].ToLower() switch
-    {
-        "auto" => RawDecryptMode.Auto,
-        "full" => RawDecryptMode.Full,
-        "partial" => RawDecryptMode.Partial,
-        _ => null
-    };
+    var mode = RawDecryptMode.FromName(parts[0]);
 
-    if (mode is null)
+    if (mode == RawDecryptMode.Undefined)
     {
         result.AddError("Invalid value for '--raw-decrypt'. Allowed values are: auto, full, partial[:size].");
         return null;
@@ -106,10 +102,10 @@ rawDecryptOption.CustomParser = result =>
             return null;
         }
 
-        return new RawDecryptConfig((RawDecryptMode)mode, size);
+        return new(mode, size);
     }
 
-    return new RawDecryptConfig((RawDecryptMode)mode);
+    return new(mode);
 };
 
 #endregion
@@ -218,8 +214,18 @@ rootCommand.SetAction(parseResult =>
         RawDecryptConfig: parseResult.GetValue(rawDecryptOption)
     );
 
-    var processor = new EslockProcessor(config);
+    var reporter = new ConsoleProcessingReporter();
+    reporter.Info("================================================================================");
+    reporter.Info("                                 ESLockDecryptor");
+    reporter.Info("================================================================================");
+    reporter.Info("     Forensic tool for recovering ES File Explorer encrypted files (.eslock)");
+    reporter.Info("                             ! FOR LEGAL USE ONLY !");
+    reporter.Info($"              Version {typeof(Program).Assembly.GetName().Version?.ToString(2) ?? "---"} | (C) 2025-2026 Piotr Kniaz | MIT License");
+    reporter.Info("================================================================================");
+
+    var processor = new EslockProcessor(config, reporter);
     processor.Execute();
+
     return 0;
 });
 

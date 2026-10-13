@@ -1,30 +1,33 @@
-namespace ESLockDecryptor.Services;
+namespace ESLockDecryptor.Application.Services;
 
-public class StatisticService
+internal sealed class StatisticService
 {
     public void IncrementFilesProcessed() => Interlocked.Increment(ref _filesProcessed);
+
     public void IncrementFilesDecrypted()
     {
         Interlocked.Increment(ref _filesDecrypted);
         Interlocked.Increment(ref _filesProcessed);
     }
+
     public void IncrementFilesSkipped()
     {
         Interlocked.Increment(ref _filesSkipped);
         Interlocked.Increment(ref _filesProcessed);
     }
+
     public void IncrementErrors() => Interlocked.Increment(ref _errors);
     public void IncrementWarnings() => Interlocked.Increment(ref _warnings);
 
-    public int FilesProcessed { get => _filesProcessed; }
-    public int FilesDecrypted { get => _filesDecrypted; }
-    public int FilesSkipped { get => _filesSkipped; }
-    public int Errors { get => _errors; }
-    public int Warnings { get => _warnings; }
+    public int FilesProcessed => _filesProcessed;
+    public int FilesDecrypted => _filesDecrypted;
+    public int FilesSkipped => _filesSkipped;
+    public int Errors => _errors;
+    public int Warnings => _warnings;
 
-    private int _filesProcessed = 0;
-    private int _filesDecrypted = 0;
-    private int _filesSkipped = 0;
-    private int _errors = 0;
-    private int _warnings = 0;
+    private int _filesProcessed;
+    private int _filesDecrypted;
+    private int _filesSkipped;
+    private int _errors;
+    private int _warnings;
 }

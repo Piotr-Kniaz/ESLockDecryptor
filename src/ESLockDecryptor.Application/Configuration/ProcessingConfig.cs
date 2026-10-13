@@ -1,4 +1,6 @@
-namespace ESLockDecryptor.Configuration;
+using ESLockDecryptor.Core.Configuration;
+
+namespace ESLockDecryptor.Application.Configuration;
 
 public record ProcessingConfig(
     FileSystemInfo InputPath,
