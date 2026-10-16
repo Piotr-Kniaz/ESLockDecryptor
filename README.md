@@ -17,11 +17,29 @@ ESLockDecryptor allows you to process individual files, directories, and try to 
 
 <div align="center">
 
-[![Download](https://img.shields.io/github/v/release/Piotr-Kniaz/ESLockDecryptor?color=brightgreen&label=Download&style=for-the-badge)](https://github.com/Piotr-Kniaz/ESLockDecryptor/releases/latest)
+---
+
+**ESLockDecryptor WebUI (easy way for most users)**
+
+[![ESLockDecryptor Online](https://img.shields.io/badge/ESLockDecryptor-Online-4A90D9?style=for-the-badge&logo=webassembly&logoColor=white)](https://eslockdecryptor.com)
+
+*All decryption is performed **locally in your browser** via WebAssembly. Your files and keys never leave your device.*
+
+---
+
+**ESLockDecryptor CLI (for technical users & forensics)**
+
+[![Download](https://img.shields.io/github/v/release/Piotr-Kniaz/ESLockDecryptor?color=brightgreen&label=Download&style=for-the-badge&logo=gnometerminal&logoColor=white)](https://github.com/Piotr-Kniaz/ESLockDecryptor/releases/latest)
 
 [![Total Downloads](https://img.shields.io/github/downloads/Piotr-Kniaz/ESLockDecryptor/total?style=flat-square&label=Total%20Downloads&color=blue)](https://github.com/Piotr-Kniaz/ESLockDecryptor/releases)
 
 <img width="692" alt="Screenshot" src="Screenshots/Screenshot.png"/>
+
+---
+
+**ESLockDecryptor.Core (for developers)**
+
+[![ESLockDecryptor NuGet Package](https://img.shields.io/nuget/v/ESLockDecryptor.Core?style=for-the-badge&logo=nuget&logoColor=white&color=004880)](https://www.nuget.org/packages/ESLockDecryptor.Core)
 
 </div>
 
@@ -40,7 +58,7 @@ You can download the latest pre-built binaries for your system from the **[Relea
 
 <div align="center">
 
-[![Download](https://img.shields.io/github/v/release/Piotr-Kniaz/ESLockDecryptor?color=brightgreen&label=Download&style=for-the-badge)](https://github.com/Piotr-Kniaz/ESLockDecryptor/releases/latest)
+[![Download](https://img.shields.io/github/v/release/Piotr-Kniaz/ESLockDecryptor?color=brightgreen&label=Download&style=for-the-badge&logo=gnometerminal&logoColor=white)](https://github.com/Piotr-Kniaz/ESLockDecryptor/releases/latest)
 
 </div>
 
