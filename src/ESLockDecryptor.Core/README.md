@@ -6,7 +6,7 @@ files created by ES File Explorer with the `.eslock` extension
 ## Installation
 
 ```bash
-dotnet add package ESLockDecryptor.Core --version 1.0.0
+dotnet add package ESLockDecryptor.Core --version 1.0.1
 ```
 
 The package currently targets `.NET 10`.
@@ -21,7 +21,7 @@ stream decryption. It does not open files or write logs.
 using ESLockDecryptor.Core.Configuration;
 using ESLockDecryptor.Core.Processing;
 
-var key = Convert.FromHexString("00112233445566778899AABBCCDDEEFF");
+var key = Convert.FromHexString("5F4DCC3B5AA765D61D8327DEB882CF99");
 using Stream input = File.OpenRead("photo.jpg.eslock");
 
 var options = new DecryptionOptions
@@ -38,9 +38,6 @@ Console.WriteLine(plan.OriginalFileName);
 using Stream output = File.Create(plan.OriginalFileName ?? "photo.jpg");
 EslockFileDecryptor.Decrypt(input, output, plan);
 ```
-
-For a browser application, use a seekable stream such as `MemoryStream` when
-the browser file stream itself does not support seeking.
 
 ## Low-level decryption
 
