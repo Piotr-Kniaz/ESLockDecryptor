@@ -11,7 +11,7 @@
     <Authors>Piotr Kniaz</Authors>
     <Copyright>Copyright © 2025-2026 Piotr Kniaz</Copyright>
     <Description>Core library for reading ESLock metadata and decrypting files encrypted by ES File Explorer.</Description>
-    <PackageReleaseNotes>Initial stable release of the reusable decryption core.</PackageReleaseNotes>
+    <PackageReleaseNotes>Dependencies updated.</PackageReleaseNotes>
     <PackageTags>eslock;decryption;cryptography;forensics</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/Piotr-Kniaz/ESLockDecryptor</PackageProjectUrl>
